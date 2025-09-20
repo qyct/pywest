@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 pywest - A tool to pack Python projects with embeddable Python for Windows
 """
