@@ -1,5 +1,6 @@
 # Project Roadmap
 
+- PYWEST = Python Windows Embeddable Setup Tool
 - pywest is a tool to pack python project along with embeddable python
 - no its new tool, give code for this and this tool is only for windows
 - it relies heavily on pyproject.toml for packages to be installed
