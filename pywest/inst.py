@@ -67,7 +67,7 @@ class Installer:
     def add_to_add_remove_programs(self, install_path):
         """Add to Add/Remove Programs"""
         try:
-            key_path = r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + self.app_name
+            key_path = r"SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\" + self.app_name
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
                 winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, self.app_name)
                 winreg.SetValueEx(key, "UninstallString", 0, winreg.REG_SZ, 
@@ -206,7 +206,6 @@ class Installer:
             # Installation path
             dpg.add_text("Installation path:")
             dpg.add_input_text(tag="install_path", default_value=self.install_path, width=280)
-            dpg.add_same_line()
             dpg.add_button(label="Browse...", callback=self.browse_folder, width=80)
             
             dpg.add_separator()
