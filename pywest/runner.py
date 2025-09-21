@@ -1,71 +1,33 @@
 """
-pywest.runner - Functions for creating run.bat scripts
+runner.py - Generate run.bat scripts for bundled projects
 """
 
 from pathlib import Path
 
 
-def create_run_script(bundle_dir, entry_name, entry_point, project_name):
-    """Create run.bat script for the bundled project"""
-    if entry_point:
-        # If entry point is defined, use it
-        module_name, func_name = entry_point.split(':')
-        bat_content = f'''@echo off
-cd /d "%~dp0"
-set PYTHONPATH=%~dp0
-set PATH=%~dp0bin;%PATH%
-
-bin\\python.exe -c "import sys; sys.path.insert(0, '.'); from {module_name} import {func_name}; {func_name}()"
-
-pause
-'''
-    else:
-        # If no entry point, try to find main.py or create a simple runner
-        main_files = ['main.py', f'{project_name}.py', '__main__.py']
-        main_file = None
-        
-        for mf in main_files:
-            if (bundle_dir / mf).exists():
-                main_file = mf
-                break
-        
-        if main_file:
-            bat_content = f'''@echo off
-cd /d "%~dp0"
-set PYTHONPATH=%~dp0
-set PATH=%~dp0bin;%PATH%
-
-bin\\python.exe {main_file} %*
-
-pause
-'''
+class RunScriptGenerator:
+    """Generate run.bat scripts for different project types"""
+    
+    def __init__(self):
+        pass
+    
+    def create_run_script(self, bundle_dir, entry_name, entry_point, project_name):
+        """Create run.bat script based on project configuration"""
+        if entry_point:
+            content = self._create_entry_point_script(entry_point)
         else:
-            # Create a generic Python launcher
-            bat_content = f'''@echo off
-cd /d "%~dp0"
-set PYTHONPATH=%~dp0
-set PATH=%~dp0bin;%PATH%
-
-echo Starting Python environment for {project_name}
-echo Use 'bin\\python.exe script.py' to run Python scripts
-echo.
-
-bin\\python.exe
-
-pause
-'''
+            main_file = self._find_main_file(bundle_dir, project_name)
+            if main_file:
+                content = self._create_main_file_script(main_file)
+            else:
+                content = self._create_generic_script(project_name)
+        
+        script_path = Path(bundle_dir) / "run.bat"
+        self._write_script(script_path, content)
+        return script_path
     
-    bat_path = bundle_dir / "run.bat"
-    with open(bat_path, 'w') as f:
-        f.write(bat_content)
-    
-    return bat_path
-
-
-def create_run_script_content(entry_name, entry_point, project_name, has_main_file=False, main_file=None):
-    """Generate run.bat content without writing to file"""
-    if entry_point:
-        # If entry point is defined, use it
+    def _create_entry_point_script(self, entry_point):
+        """Create script content for entry point execution"""
         module_name, func_name = entry_point.split(':')
         return f'''@echo off
 cd /d "%~dp0"
@@ -76,7 +38,9 @@ bin\\python.exe -c "import sys; sys.path.insert(0, '.'); from {module_name} impo
 
 pause
 '''
-    elif has_main_file and main_file:
+    
+    def _create_main_file_script(self, main_file):
+        """Create script content for main file execution"""
         return f'''@echo off
 cd /d "%~dp0"
 set PYTHONPATH=%~dp0
@@ -86,8 +50,9 @@ bin\\python.exe {main_file} %*
 
 pause
 '''
-    else:
-        # Create a generic Python launcher
+    
+    def _create_generic_script(self, project_name):
+        """Create generic Python launcher script"""
         return f'''@echo off
 cd /d "%~dp0"
 set PYTHONPATH=%~dp0
@@ -101,14 +66,57 @@ bin\\python.exe
 
 pause
 '''
+    
+    def _find_main_file(self, bundle_dir, project_name):
+        """Find main file in bundle directory"""
+        from constants import PyWestConstants
+        
+        bundle_path = Path(bundle_dir)
+        candidates = list(PyWestConstants.MAIN_FILE_CANDIDATES) + [f'{project_name}.py']
+        
+        for candidate in candidates:
+            if (bundle_path / candidate).exists():
+                return candidate
+        
+        return None
+    
+    def _write_script(self, script_path, content):
+        """Write script content to file"""
+        try:
+            with open(script_path, 'w') as f:
+                f.write(content)
+        except Exception as e:
+            raise Exception(f"Failed to create run script: {str(e)}")
 
 
-def find_main_file(bundle_dir, project_name):
-    """Find the main Python file to run"""
-    main_files = ['main.py', f'{project_name}.py', '__main__.py']
+class RunScriptValidator:
+    """Validate run script creation"""
     
-    for mf in main_files:
-        if (bundle_dir / mf).exists():
-            return mf
+    @staticmethod
+    def validate_entry_point(entry_point):
+        """Validate entry point format"""
+        if not entry_point:
+            return True, None
+        
+        if ':' not in entry_point:
+            return False, "Entry point must be in format 'module:function'"
+        
+        parts = entry_point.split(':')
+        if len(parts) != 2:
+            return False, "Entry point must contain exactly one colon"
+        
+        module_name, func_name = parts
+        if not module_name or not func_name:
+            return False, "Both module name and function name are required"
+        
+        return True, None
     
-    return None
+    @staticmethod
+    def get_script_type(entry_point, main_file):
+        """Determine the type of script to create"""
+        if entry_point:
+            return "entry_point"
+        elif main_file:
+            return "main_file"
+        else:
+            return "generic"

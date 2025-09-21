@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pywest"
-version = "1.0.0"
+version = "0.0.3"
 description = "A tool to pack Python projects with embeddable Python for Windows"
 authors = [
     {name = "qyct"}

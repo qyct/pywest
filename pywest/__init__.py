@@ -1,11 +1,29 @@
 """
-pywest - A tool to pack Python projects with embeddable Python for Windows
+PyWest - Python Project Bundler for Windows
 """
 
-__version__ = "1.0.0"
+__version__ = "0.0.1"
+__author__ = "PyWest Development Team"
+__description__ = "Python Project Bundler for Windows"
 
-from .bundler import PyWest
-from .utils import StylePrinter, Colors
-from .cli import main
+# Main exports
+from bundler import ProjectBundler, BundlerWorkflow
+from config import ProjectConfig, BundleConfig
+from printer import StylePrinter, HeaderPrinter
+from version import VersionInfo, FeatureInfo, AboutInfo
+from validator import ProjectValidator, BundleValidator, SystemValidator
 
-__all__ = ['PyWest', 'StylePrinter', 'Colors', 'main']
+__all__ = [
+    'ProjectBundler',
+    'BundlerWorkflow', 
+    'ProjectConfig',
+    'BundleConfig',
+    'StylePrinter',
+    'HeaderPrinter',
+    'VersionInfo',
+    'FeatureInfo',
+    'AboutInfo',
+    'ProjectValidator',
+    'BundleValidator',
+    'SystemValidator'
+]
