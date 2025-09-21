@@ -340,9 +340,32 @@ pause
         bundle_name = f"{project_name}_bundle"
         bundle_dir = output_path / bundle_name
         
+        # Check if bundle directory already exists
         if bundle_dir.exists():
-            shutil.rmtree(bundle_dir)
-        bundle_dir.mkdir(parents=True)
+            self.printer.warning(f"Bundle directory already exists: {bundle_dir}")
+            response = input(f"{Colors.YELLOW}?{Colors.RESET} Overwrite existing bundle? [y/N]: ").strip().lower()
+            
+            if response not in ('y', 'yes'):
+                self.printer.info("Bundle creation cancelled")
+                return None
+            
+            # Attempt to remove existing directory
+            try:
+                self.printer.progress("Removing existing bundle...")
+                shutil.rmtree(bundle_dir)
+                self.printer.progress_done("Existing bundle removed")
+            except PermissionError as e:
+                raise PermissionError(f"Cannot remove existing bundle directory. Files may be in use or you lack permissions: {e}")
+            except Exception as e:
+                raise Exception(f"Failed to remove existing bundle directory: {e}")
+        
+        # Create new bundle directory
+        try:
+            bundle_dir.mkdir(parents=True)
+        except PermissionError as e:
+            raise PermissionError(f"Cannot create bundle directory. Check permissions: {e}")
+        except Exception as e:
+            raise Exception(f"Failed to create bundle directory: {e}")
         
         self.printer.info(f"Project: {Colors.BRIGHT_WHITE}{project_name}{Colors.RESET}")
         self.printer.info(f"Output: {Colors.BRIGHT_WHITE}{bundle_dir}{Colors.RESET}")
@@ -360,6 +383,7 @@ pause
             self.setup_pip_in_embed(python_dir)
             self.install_dependencies(python_dir, dependencies)
             
+        try:
             # Copy Python to bundle bin directory
             self.printer.progress("Setting up Python environment...")
             bin_dir = bundle_dir / "bin"
@@ -373,6 +397,23 @@ pause
             self.printer.progress("Generating launcher...")
             self.create_run_script(bundle_dir, entry_name, entry_point, project_name)
             self.printer.progress_done("Launcher created")
+            
+        except PermissionError as e:
+            # Clean up partial bundle on write error
+            if bundle_dir.exists():
+                try:
+                    shutil.rmtree(bundle_dir)
+                except:
+                    pass  # Best effort cleanup
+            raise PermissionError(f"Permission denied while creating bundle. Check file permissions and ensure no files are in use: {e}")
+        except Exception as e:
+            # Clean up partial bundle on any error
+            if bundle_dir.exists():
+                try:
+                    shutil.rmtree(bundle_dir)
+                except:
+                    pass  # Best effort cleanup
+            raise Exception(f"Failed to create bundle: {e}")
         
         print(f"\n{Colors.BRIGHT_GREEN}✅ Bundle created successfully!{Colors.RESET}")
         self.printer.dim(f"   Location: {bundle_dir}")
@@ -382,24 +423,74 @@ pause
     
     def create_bundle_zip(self, project_path, output_path):
         """Create bundle as a ZIP file"""
+        project_path = Path(project_path).resolve()
+        project_name = project_path.name
+        
+        # Check for existing ZIP file
+        zip_path = output_path / f"{project_name}_bundle.zip"
+        if zip_path.exists():
+            self.printer.warning(f"ZIP bundle already exists: {zip_path}")
+            response = input(f"{Colors.YELLOW}?{Colors.RESET} Overwrite existing ZIP bundle? [y/N]: ").strip().lower()
+            
+            if response not in ('y', 'yes'):
+                self.printer.info("Bundle creation cancelled")
+                return None
+            
+            try:
+                zip_path.unlink()
+                self.printer.info("Existing ZIP bundle removed")
+            except PermissionError as e:
+                raise PermissionError(f"Cannot remove existing ZIP file. File may be in use: {e}")
+            except Exception as e:
+                raise Exception(f"Failed to remove existing ZIP file: {e}")
+        
         # First create folder bundle
         bundle_dir = self.create_bundle_folder(project_path, output_path)
         
-        # Create ZIP file
-        zip_path = output_path / f"{bundle_dir.name}.zip"
+        if bundle_dir is None:  # User cancelled folder creation
+            return None
         
         print()  # Add spacing
-        self.printer.progress(f"Creating ZIP archive...")
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in bundle_dir.rglob('*'):
-                if file_path.is_file():
-                    arcname = file_path.relative_to(bundle_dir.parent)
-                    zipf.write(file_path, arcname)
         
-        # Remove the folder bundle
-        shutil.rmtree(bundle_dir)
-        
-        self.printer.progress_done("ZIP archive created")
+        try:
+            self.printer.progress(f"Creating ZIP archive...")
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for file_path in bundle_dir.rglob('*'):
+                    if file_path.is_file():
+                        arcname = file_path.relative_to(bundle_dir.parent)
+                        zipf.write(file_path, arcname)
+            
+            # Remove the folder bundle
+            shutil.rmtree(bundle_dir)
+            
+            self.printer.progress_done("ZIP archive created")
+            
+        except PermissionError as e:
+            # Clean up on error
+            if zip_path.exists():
+                try:
+                    zip_path.unlink()
+                except:
+                    pass
+            if bundle_dir.exists():
+                try:
+                    shutil.rmtree(bundle_dir)
+                except:
+                    pass
+            raise PermissionError(f"Permission denied while creating ZIP archive: {e}")
+        except Exception as e:
+            # Clean up on error
+            if zip_path.exists():
+                try:
+                    zip_path.unlink()
+                except:
+                    pass
+            if bundle_dir.exists():
+                try:
+                    shutil.rmtree(bundle_dir)
+                except:
+                    pass
+            raise Exception(f"Failed to create ZIP archive: {e}")
         
         print(f"\n{Colors.BRIGHT_GREEN}✅ ZIP bundle created successfully!{Colors.RESET}")
         self.printer.dim(f"   Location: {zip_path}")
@@ -419,10 +510,17 @@ pause
         # Output adjacent to project directory
         output_path = project_path.parent
         
-        if bundle_type == 'zip':
-            return self.create_bundle_zip(project_path, output_path)
-        else:
-            return self.create_bundle_folder(project_path, output_path)
+        try:
+            if bundle_type == 'zip':
+                return self.create_bundle_zip(project_path, output_path)
+            else:
+                return self.create_bundle_folder(project_path, output_path)
+        except (PermissionError, FileNotFoundError, NotADirectoryError):
+            # Re-raise these specific exceptions as-is
+            raise
+        except Exception as e:
+            # Wrap other exceptions with more context
+            raise Exception(f"Bundle creation failed: {e}")
 
 
 def main():
@@ -447,8 +545,18 @@ def main():
         bundle_type = 'zip' if args.zip else 'folder'
         result = pywest.bundle_project(args.project_name, bundle_type)
         
+        if result is None:
+            # User cancelled the operation
+            sys.exit(0)
+            
+    except KeyboardInterrupt:
+        StylePrinter.warning("Operation cancelled by user")
+        sys.exit(1)
+    except (PermissionError, FileNotFoundError, NotADirectoryError) as e:
+        StylePrinter.error(str(e))
+        sys.exit(1)
     except Exception as e:
-        StylePrinter.error(f"Build failed: {e}")
+        StylePrinter.error(f"Unexpected error: {e}")
         sys.exit(1)
 
 
