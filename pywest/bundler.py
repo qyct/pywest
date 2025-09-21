@@ -3,16 +3,16 @@ bundler.py - Main project bundler orchestration
 """
 
 from pathlib import Path
-from config import ProjectConfig, BundleConfig
-from downloader import PythonDownloader
-from environment import PythonEnvironment, DependencyInstaller
-from filemanager import ProjectFileManager, BundleDirectoryManager
-from runner import RunScriptGenerator
-from setupscript import SetupScriptGenerator
-from installer import InstallerGUIGenerator
-from archiver import ArchiveManager, ArchiveInfoProvider
-from printer import StylePrinter, HeaderPrinter
-from validator import ProjectValidator, BundleValidator
+from .config import ProjectConfig, BundleConfig
+from .downloader import PythonDownloader
+from .environment import PythonEnvironment, DependencyInstaller
+from .filemanager import ProjectFileManager, BundleDirectoryManager
+from .runner import RunScriptGenerator
+from .setupscript import SetupScriptGenerator
+from .installer import InstallerGUIGenerator
+from .archiver import ArchiveManager, ArchiveInfoProvider
+from .printer import StylePrinter, HeaderPrinter
+from .validator import ProjectValidator, BundleValidator
 
 
 class ProjectBundler:

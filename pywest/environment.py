@@ -5,9 +5,9 @@ environment.py - Python environment setup and pip management
 import os
 import subprocess
 from pathlib import Path
-from printer import StylePrinter
-from downloader import GetPipDownloader
-from constants import PyWestConstants
+from .printer import StylePrinter
+from .downloader import GetPipDownloader
+from .constants import PyWestConstants
 
 
 class PythonEnvironment:

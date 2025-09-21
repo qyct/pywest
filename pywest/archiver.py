@@ -5,8 +5,8 @@ archiver.py - Handle creation of ZIP and 7-Zip archives
 import zipfile
 import shutil
 from pathlib import Path
-from printer import StylePrinter
-from compression import CompressionUtils, ArchiveValidator
+from .printer import StylePrinter
+from .compression import CompressionUtils, ArchiveValidator
 
 try:
     import py7zr

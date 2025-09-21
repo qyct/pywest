@@ -2,7 +2,7 @@
 printer.py - Stylized output printing functionality
 """
 
-from constants import Colors
+from .constants import Colors
 
 
 class StylePrinter:

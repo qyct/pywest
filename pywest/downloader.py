@@ -7,8 +7,8 @@ import sys
 import urllib.request
 import zipfile
 from pathlib import Path
-from printer import StylePrinter
-from constants import PyWestConstants
+from .printer import StylePrinter
+from .constants import PyWestConstants
 
 
 class PythonDownloader:

@@ -4,8 +4,8 @@ filemanager.py - Handle file operations and project file management
 
 import shutil
 from pathlib import Path
-from printer import StylePrinter
-from constants import PyWestConstants
+from .printer import StylePrinter
+from .constants import PyWestConstants
 
 
 class ProjectFileManager:

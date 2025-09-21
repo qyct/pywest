@@ -3,22 +3,11 @@ compression.py - Compression utilities for different archive formats
 """
 
 import zipfile
-
-# Optional 7-zip support
-try:
-    import py7zr
-    PY7ZR_AVAILABLE = True
-except ImportError:
-    PY7ZR_AVAILABLE = False
+import py7zr
 
 
 class CompressionUtils:
     """Utilities for handling different compression formats"""
-    
-    @staticmethod
-    def is_py7zr_available():
-        """Check if py7zr library is available"""
-        return PY7ZR_AVAILABLE
     
     @staticmethod
     def get_zip_compression_settings(level):
@@ -35,9 +24,6 @@ class CompressionUtils:
     @staticmethod
     def get_7zip_compression_filters(level):
         """Get py7zr compression filters for given level"""
-        if not PY7ZR_AVAILABLE:
-            return None
-        
         if level == 0:
             return [{"id": py7zr.FILTER_COPY}]
         elif level <= 2:
@@ -69,9 +55,6 @@ class ArchiveValidator:
     @staticmethod
     def validate_7zip_creation(archive_path, compression_level):
         """Validate 7-Zip archive creation parameters"""
-        if not PY7ZR_AVAILABLE:
-            return False, "py7zr library not available"
-        
         if archive_path.exists():
             return False, f"7Z file already exists: {archive_path}"
         
@@ -104,3 +87,77 @@ class ArchiveValidator:
                 return archive_name[:-length]
         
         return archive_name
+
+
+class CompressionLevelMapper:
+    """Map compression levels to human-readable descriptions"""
+    
+    LEVEL_DESCRIPTIONS = {
+        0: "Store (no compression)",
+        1: "Fastest compression",
+        2: "Fast compression", 
+        3: "Fast compression",
+        4: "Normal compression",
+        5: "Normal compression",
+        6: "Good compression (default)",
+        7: "Better compression",
+        8: "Better compression",
+        9: "Best compression (slowest)"
+    }
+    
+    @classmethod
+    def get_description(cls, level):
+        """Get description for compression level"""
+        return cls.LEVEL_DESCRIPTIONS.get(level, "Unknown compression level")
+    
+    @classmethod
+    def get_recommended_level(cls, archive_type, file_size_mb=None):
+        """Get recommended compression level based on archive type and size"""
+        if archive_type == 'zip':
+            return 6  # Good balance for ZIP
+        elif archive_type == '7zip':
+            if file_size_mb and file_size_mb > 100:
+                return 7  # Better compression for larger files
+            else:
+                return 6  # Default for smaller files
+        else:
+            return 6  # Default fallback
+
+
+class CompressionEstimator:
+    """Estimate compression ratios and times"""
+    
+    # Rough estimates based on typical file types
+    COMPRESSION_RATIOS = {
+        'text': {0: 1.0, 1: 0.7, 3: 0.5, 6: 0.4, 9: 0.35},
+        'binary': {0: 1.0, 1: 0.9, 3: 0.8, 6: 0.75, 9: 0.7},
+        'mixed': {0: 1.0, 1: 0.8, 3: 0.65, 6: 0.55, 9: 0.5}
+    }
+    
+    @classmethod
+    def estimate_compressed_size(cls, original_size_mb, compression_level, content_type='mixed'):
+        """Estimate compressed file size"""
+        ratios = cls.COMPRESSION_RATIOS.get(content_type, cls.COMPRESSION_RATIOS['mixed'])
+        
+        # Find closest compression level in our ratio table
+        closest_level = min(ratios.keys(), key=lambda x: abs(x - compression_level))
+        ratio = ratios[closest_level]
+        
+        return original_size_mb * ratio
+    
+    @classmethod
+    def estimate_compression_time(cls, file_size_mb, compression_level):
+        """Estimate compression time in seconds (very rough)"""
+        # Base time per MB (seconds) - these are rough estimates
+        base_times = {
+            0: 0.1,   # Store - very fast
+            1: 0.2,   # Fast
+            3: 0.4,   # Normal  
+            6: 0.8,   # Good
+            9: 2.0    # Best - slow
+        }
+        
+        closest_level = min(base_times.keys(), key=lambda x: abs(x - compression_level))
+        base_time = base_times[closest_level]
+        
+        return file_size_mb * base_time

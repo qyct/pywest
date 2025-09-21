@@ -4,13 +4,13 @@ version.py - Version information and package metadata
 
 import sys
 from pathlib import Path
-from constants import PyWestConstants
+from .constants import PyWestConstants
 
 
 class VersionInfo:
     """PyWest version and build information"""
     
-    VERSION = "1.0.0"
+    VERSION = "0.0.1"
     BUILD_DATE = "2024"
     AUTHOR = "PyWest Development Team"
     DESCRIPTION = "Python Project Bundler for Windows"

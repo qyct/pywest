@@ -4,7 +4,7 @@ config.py - Configuration handling and pyproject.toml parsing
 
 import tomllib
 from pathlib import Path
-from printer import StylePrinter
+from .printer import StylePrinter
 
 
 class ProjectConfig:

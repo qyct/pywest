@@ -1,17 +1,12 @@
 """
-PyWest - Modular Python Project Bundler for Windows
-Split into 16 balanced files without underscores
-"""
-
-"""
 cli.py - Main CLI interface and entry point
 """
 
 import sys
 import argparse
 from pathlib import Path
-from printer import StylePrinter
-from bundler import ProjectBundler
+from .printer import StylePrinter
+from .bundler import ProjectBundler
 
 
 class PyWestCLI:
