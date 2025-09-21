@@ -31,7 +31,7 @@ class PythonDownloader:
         
         if self.is_cached(python_version):
             self.printer.progress(f"Using cached Python {python_version} embeddable...")
-            self.printer.progress_done(f"Python {python_version} embeddable found in cache")
+            self.printer.progress_done(f"Using Python {python_version} embeddable from cache")
             return cached_path
         
         self.printer.progress(f"Downloading Python {python_version} embeddable...")

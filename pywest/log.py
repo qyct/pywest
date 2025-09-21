@@ -34,16 +34,22 @@ class StylePrinter:
         """Print dimmed message"""
         print(Colors.DIM + message + Colors.RESET)
     
+    _last_progress_length = 0
+    
     @staticmethod
-    def progress(message, prefix="◐"):
+    def progress(message, prefix="◯"):
         """Print progress message (no newline)"""
-        print(Colors.YELLOW + prefix + Colors.RESET + " " + message, end="", flush=True)
+        full_message = Colors.YELLOW + prefix + Colors.RESET + " " + message
+        # Store the visible length (excluding ANSI codes)
+        StylePrinter._last_progress_length = len(prefix + " " + message)
+        print(full_message, end="", flush=True)
     
     @staticmethod
     def progress_done(message="Done"):
         """Print completion message, clearing the progress line"""
-        print("\r" + " " * 80, end="")
-        print("\r" + Colors.BRIGHT_GREEN + "✓" + Colors.RESET + " " + message)
+        # Clear exactly the length of the last progress message
+        clear_length = max(StylePrinter._last_progress_length, len("✓ " + message))
+        print("\r" + " " * clear_length + "\r" + Colors.BRIGHT_GREEN + "✓" + Colors.RESET + " " + message)
 
 
 class HeaderPrinter:
@@ -58,16 +64,16 @@ class HeaderPrinter:
     @staticmethod
     def print_project_info(project_name, output_path, dependency_count=0):
         """Print project information summary"""
-        print("ℹ Project: " + project_name)
-        print("ℹ Output: " + str(output_path))
+        print("Project: " + project_name)
+        print("Output: " + str(output_path))
         if dependency_count > 0:
-            print("ℹ Dependencies: " + str(dependency_count))
-        print()
+            print("Dependencies: " + str(dependency_count))
+        print("")
 
     @staticmethod
     def print_completion_info(bundle_path, bundle_type="folder", file_size=None, compression_level=None):
         """Print bundle completion information"""
-        print("\n" + Colors.BRIGHT_GREEN + "✅ Bundle created successfully!" + Colors.RESET)
+        print(Colors.BRIGHT_GREEN + "✅ Bundle created successfully!" + Colors.RESET)
         print("   Location: " + str(bundle_path))
         
         if bundle_type == "folder":
