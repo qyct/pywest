@@ -4,6 +4,13 @@ pywest.utils - Utility classes for styling and output
 
 import zipfile
 
+# For 7z support
+try:
+    import py7zr
+    PY7ZR_AVAILABLE = True
+except ImportError:
+    PY7ZR_AVAILABLE = False
+
 
 class Colors:
     """ANSI color codes for terminal output"""
@@ -82,8 +89,35 @@ def get_compression_level_for_zip(level):
         return zipfile.ZIP_DEFLATED, 9
 
 
+def get_py7zr_compression_args(level):
+    """Get py7zr compression filters for given level"""
+    if not PY7ZR_AVAILABLE:
+        return None
+    
+    # py7zr compression filters based on level
+    if level == 0:
+        # Store - no compression
+        return [{"id": py7zr.FILTER_COPY}]
+    elif level <= 2:
+        # Fast compression
+        return [{"id": py7zr.FILTER_LZMA2, "preset": 1}]
+    elif level <= 4:
+        # Normal compression
+        return [{"id": py7zr.FILTER_LZMA2, "preset": 6}]
+    elif level <= 6:
+        # Good compression (default)
+        return [{"id": py7zr.FILTER_LZMA2, "preset": 7}]
+    elif level <= 8:
+        # Better compression
+        return [{"id": py7zr.FILTER_LZMA2, "preset": 8}]
+    else:
+        # Maximum compression
+        return [{"id": py7zr.FILTER_LZMA2, "preset": 9}]
+
+
 def get_7zip_compression_args(level):
-    """Get 7-Zip compression arguments for given level"""
+    """Get 7-Zip compression arguments for given level (deprecated - kept for compatibility)"""
+    # This function is kept for compatibility but not used anymore
     compression_methods = {
         0: ['-mx0'],  # Store
         1: ['-mx1'],  # Fastest

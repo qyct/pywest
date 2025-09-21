@@ -14,7 +14,14 @@ from pathlib import Path
 # Use tomllib (Python 3.11+ builtin)
 import tomllib
 
-from .utils import Colors, StylePrinter, get_compression_level_for_zip, get_7zip_compression_args
+# For 7z support
+try:
+    import py7zr
+    PY7ZR_AVAILABLE = True
+except ImportError:
+    PY7ZR_AVAILABLE = False
+
+from .utils import Colors, StylePrinter, get_compression_level_for_zip, get_py7zr_compression_args
 from .runner import create_run_script, find_main_file
 from .installer import create_setup_script
 
@@ -33,10 +40,12 @@ class PyWest:
         print("    pywest                           Show this help information")
         print("    pywest <project_name>            Bundle project as folder (default)")
         print("    pywest <project_name> --zip      Bundle project as ZIP file")
-        print("    pywest <project_name> --7zip     Bundle project as 7Z file")
+        if PY7ZR_AVAILABLE:
+            print("    pywest <project_name> --7zip     Bundle project as 7Z file")
         print("\nOptions:")
         print("    --zip, -z                        Create bundle as ZIP instead of folder")
-        print("    --7zip, -7                       Create bundle as 7Z instead of folder")
+        if PY7ZR_AVAILABLE:
+            print("    --7zip, -7                       Create bundle as 7Z instead of folder")
         print("    --compression, -c LEVEL          Compression level (0-9, default: 6)")
         print("                                     0=store, 1=fastest, 6=default, 9=best")
         print("    --python VERSION                 Specify Python version (default: 3.12.10, also supports: 3.11.9)")
@@ -44,7 +53,8 @@ class PyWest:
         print("\nExamples:")
         print("    pywest my_app                    Create my_app_bundle folder")
         print("    pywest my_app --zip              Create my_app_bundle.zip")
-        print("    pywest my_app --7zip -c 9        Create my_app_bundle.7z with best compression")
+        if PY7ZR_AVAILABLE:
+            print("    pywest my_app --7zip -c 9        Create my_app_bundle.7z with best compression")
         print("    pywest my_app --name MyApp       Create MyApp folder")
         print("    pywest my_app --zip --name MyApp Create MyApp.zip")
         print("\nDescription:")
@@ -53,16 +63,13 @@ class PyWest:
         print("    Each bundle includes setup.bat for GUI-based installation with shortcuts and registry entries.")
         print("\nRequirements:")
         print("    - Windows environment")
-        print("    - 7-Zip (for --7zip option): https://www.7-zip.org/")
+        if not PY7ZR_AVAILABLE:
+            print("    - py7zr library (for --7zip option): pip install py7zr")
         print("    - Project configuration file (optional - if present, dependencies will be installed)")
     
-    def check_7zip_available(self):
-        """Check if 7-Zip is available in system PATH"""
-        try:
-            result = subprocess.run(['7z'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            return True
-        except FileNotFoundError:
-            return False
+    def check_py7zr_available(self):
+        """Check if py7zr library is available"""
+        return PY7ZR_AVAILABLE
     
     def load_pyproject(self, project_path):
         """Load and parse pyproject.toml"""
@@ -245,7 +252,7 @@ class PyWest:
         
         # Print header
         print("\n" + Colors.BOLD + Colors.BRIGHT_CYAN + "🚀 PyWest Bundler" + Colors.RESET)
-        print(Colors.DIM + "━" * 50 + Colors.RESET)
+        print(Colors.DIM + "─" * 50 + Colors.RESET)
         
         # Load pyproject.toml (optional)
         pyproject_data = self.load_pyproject(project_path)
@@ -435,7 +442,10 @@ class PyWest:
         return zip_path
     
     def create_bundle_7zip(self, project_path, output_path, bundle_name=None):
-        """Create bundle as a 7Z file"""
+        """Create bundle as a 7Z file using py7zr library"""
+        if not PY7ZR_AVAILABLE:
+            raise Exception("py7zr library is not installed. Install it with: pip install py7zr")
+            
         project_path = Path(project_path).resolve()
         project_name = project_path.name
         
@@ -483,16 +493,11 @@ class PyWest:
         try:
             self.printer.progress("Creating 7Z archive...")
             
-            compression_args = get_7zip_compression_args(self.compression_level)
+            # Get compression settings for py7zr
+            compression_filters = get_py7zr_compression_args(self.compression_level)
             
-            # Use 7z command line
-            cmd = ['7z', 'a'] + compression_args + [str(archive_path), str(bundle_dir / '*')]
-            
-            with open(os.devnull, 'w') as devnull:
-                result = subprocess.run(cmd, stdout=devnull, stderr=devnull)
-            
-            if result.returncode != 0:
-                raise Exception("7-Zip compression failed")
+            with py7zr.SevenZipFile(archive_path, 'w', filters=compression_filters) as archive:
+                archive.writeall(bundle_dir, bundle_dir.name)
             
             # Remove the folder bundle
             shutil.rmtree(bundle_dir)

@@ -14,7 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description='pywest - Python Project Bundler for Windows')
     parser.add_argument('project_name', nargs='?', help='Name of the project directory to bundle')
     parser.add_argument('--zip', '-z', action='store_true', help='Create bundle as ZIP instead of folder')
-    parser.add_argument('--7zip', '-7', action='store_true', help='Create bundle as 7Z instead of folder')
+    parser.add_argument('--7zip', '-7', action='store_true', dest='seven_zip', help='Create bundle as 7Z instead of folder')
     parser.add_argument('--compression', '-c', type=int, default=6, choices=range(0, 10),
                        help='Compression level (0-9, default: 6). 0=store, 1=fastest, 6=default, 9=best')
     parser.add_argument('--python', default='3.12.10', 
@@ -26,7 +26,7 @@ def main():
     args = parser.parse_args()
     
     # Validate compression arguments
-    if args.zip and args._7zip:
+    if args.zip and args.seven_zip:
         StylePrinter.error("Cannot use both --zip and --7zip options simultaneously")
         sys.exit(1)
     
@@ -39,15 +39,9 @@ def main():
         pywest.print_cli_info()
         return
     
-    # Check for 7-Zip availability if needed
-    if args._7zip and not pywest.check_7zip_available():
-        StylePrinter.error("7-Zip not found in system PATH")
-        StylePrinter.info("Please install 7-Zip from https://www.7-zip.org/ and ensure it's in your PATH")
-        sys.exit(1)
-    
     try:
         # Determine bundle type
-        if args._7zip:
+        if args.seven_zip:
             bundle_type = '7zip'
         elif args.zip:
             bundle_type = 'zip'

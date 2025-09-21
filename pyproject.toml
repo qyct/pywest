@@ -25,7 +25,9 @@ classifiers = [
 ]
 keywords = ["packaging", "bundling", "windows", "embeddable", "python"]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "py7zr>=0.20.0"
+]
 
 [project.optional-dependencies]
 dev = [
