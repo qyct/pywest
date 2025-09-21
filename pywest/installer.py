@@ -118,7 +118,7 @@ class Installer:
     
     def create_uninstaller(self, install_path):
         """Create uninstaller script"""
-        uninstall_content = f\'''@echo off
+        uninstall_content = f"""@echo off
 echo Uninstalling {{self.app_name}}...
 cd /d "%~dp0"
 
@@ -135,7 +135,8 @@ rmdir /s /q "{{install_path.name}}"
 
 echo {{self.app_name}} has been uninstalled.
 pause
-\'''
+"""
+        
         with open(install_path / "uninstall.bat", 'w') as f:
             f.write(uninstall_content)
     

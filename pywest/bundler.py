@@ -114,31 +114,38 @@ class PyWest:
     
     def download_embed_python(self, bundle_dir):
         """Download and extract embeddable Python directly to bundle"""
-        embed_zip_path = bundle_dir / f"python-{self.python_version}-embed.zip"
+        # Create cache directory in user home
+        cache_dir = Path.home() / ".pywest"
+        cache_dir.mkdir(exist_ok=True)
         
-        self.printer.progress(f"Downloading Python {self.python_version} embeddable...")
+        # Cache file path
+        cached_zip_path = cache_dir / f"python-{self.python_version}-embed-amd64.zip"
         
-        # Suppress urllib output by redirecting stderr temporarily
-        old_stderr = sys.stderr
-        sys.stderr = open(os.devnull, 'w')
+        # Check if cached version exists
+        if cached_zip_path.exists():
+            self.printer.progress(f"Using cached Python {self.python_version} embeddable...")
+            self.printer.progress_done(f"Python {self.python_version} embeddable found in cache")
+        else:
+            self.printer.progress(f"Downloading Python {self.python_version} embeddable...")
+            
+            # Suppress urllib output by redirecting stderr temporarily
+            old_stderr = sys.stderr
+            sys.stderr = open(os.devnull, 'w')
+            
+            try:
+                urllib.request.urlretrieve(self.python_embed_url, cached_zip_path)
+            finally:
+                sys.stderr.close()
+                sys.stderr = old_stderr
+            
+            self.printer.progress_done(f"Python {self.python_version} embeddable downloaded")
         
-        try:
-            urllib.request.urlretrieve(self.python_embed_url, embed_zip_path)
-        finally:
-            sys.stderr.close()
-            sys.stderr = old_stderr
-        
-        self.printer.progress_done(f"Python {self.python_version} downloaded")
-        
-        # Extract directly to bin directory
+        # Extract directly to bin directory from cache
         bin_dir = bundle_dir / "bin"
         bin_dir.mkdir(exist_ok=True)
         
-        with zipfile.ZipFile(embed_zip_path, 'r') as zip_ref:
+        with zipfile.ZipFile(cached_zip_path, 'r') as zip_ref:
             zip_ref.extractall(bin_dir)
-        
-        # Clean up zip file
-        embed_zip_path.unlink()
         
         return bin_dir
     
