@@ -40,8 +40,9 @@ if %errorlevel% neq 0 (
 
 def create_installer_gui_script(project_name):
     """Generate the DearPyGui installer script content"""
-    return f'''"""
-GUI Installer for {project_name}
+    # Use triple quotes and string concatenation to avoid f-string variable scope issues
+    script_content = '''"""
+GUI Installer for ''' + project_name + '''
 """
 
 import dearpygui.dearpygui as dpg
@@ -54,7 +55,7 @@ import sys
 from pathlib import Path
 
 class Installer:
-    def __init__(self, app_name="{project_name}"):
+    def __init__(self, app_name="''' + project_name + '''"):
         self.app_name = app_name
         self.bundle_dir = Path(__file__).parent
         self.default_install_path = Path.home() / "AppData" / "Local" / app_name
@@ -80,7 +81,7 @@ class Installer:
             import win32com.client
             shell = win32com.client.Dispatch("WScript.Shell")
             desktop = shell.SpecialFolders("Desktop")
-            shortcut = shell.CreateShortCut(os.path.join(desktop, f"{{self.app_name}}.lnk"))
+            shortcut = shell.CreateShortCut(os.path.join(desktop, f"{self.app_name}.lnk"))
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             shortcut.IconLocation = str(install_path / "bin" / "python.exe")
@@ -94,7 +95,7 @@ class Installer:
             import win32com.client
             shell = win32com.client.Dispatch("WScript.Shell")
             programs = shell.SpecialFolders("Programs")
-            shortcut = shell.CreateShortCut(os.path.join(programs, f"{{self.app_name}}.lnk"))
+            shortcut = shell.CreateShortCut(os.path.join(programs, f"{self.app_name}.lnk"))
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             shortcut.IconLocation = str(install_path / "bin" / "python.exe")
@@ -105,7 +106,7 @@ class Installer:
     def add_to_add_remove_programs(self, install_path):
         """Add to Add/Remove Programs"""
         try:
-            key_path = r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{{self.app_name}}"
+            key_path = r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + self.app_name
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
                 winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, self.app_name)
                 winreg.SetValueEx(key, "UninstallString", 0, winreg.REG_SZ, 
@@ -118,24 +119,25 @@ class Installer:
     
     def create_uninstaller(self, install_path):
         """Create uninstaller script"""
-        uninstall_content = f"""@echo off
-echo Uninstalling {{self.app_name}}...
+        # Build the uninstaller content using string formatting to avoid syntax issues
+        uninstall_content = """@echo off
+echo Uninstalling {app_name}...
 cd /d "%~dp0"
 
 :: Remove shortcuts
-del "%USERPROFILE%\\Desktop\\{{self.app_name}}.lnk" 2>nul
-del "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\{{self.app_name}}.lnk" 2>nul
+del "%USERPROFILE%\\Desktop\\{app_name}.lnk" 2>nul
+del "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\{app_name}.lnk" 2>nul
 
 :: Remove from Add/Remove Programs
-reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{{self.app_name}}" /f 2>nul
+reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{app_name}" /f 2>nul
 
 :: Remove installation directory
 cd ..
-rmdir /s /q "{{install_path.name}}"
+rmdir /s /q "{dir_name}"
 
-echo {{self.app_name}} has been uninstalled.
+echo {app_name} has been uninstalled.
 pause
-"""
+""".format(app_name=self.app_name, dir_name=install_path.name)
         
         with open(install_path / "uninstall.bat", 'w') as f:
             f.write(uninstall_content)
@@ -193,7 +195,7 @@ pause
             dpg.set_value("install_button", "Close")
             
         except Exception as e:
-            dpg.set_value("status_text", f"Installation failed: {{str(e)}}")
+            dpg.set_value("status_text", f"Installation failed: {str(e)}")
             dpg.set_value("install_button", "Close")
         finally:
             self.installing = False
@@ -232,10 +234,10 @@ pause
                            width=700, height=400):
             dpg.add_file_extension("", color=(255, 255, 255, 255))
         
-        with dpg.window(tag="main_window", label=f"{{self.app_name}} Installer", 
+        with dpg.window(tag="main_window", label=f"{self.app_name} Installer", 
                        width=400, height=320, no_resize=True, no_collapse=True):
             
-            dpg.add_text(f"Welcome to {{self.app_name}} Setup")
+            dpg.add_text(f"Welcome to {self.app_name} Setup")
             dpg.add_separator()
             
             # Installation path
@@ -267,7 +269,7 @@ pause
             dpg.add_button(tag="install_button", label="Install", 
                          callback=self.start_installation, width=-1, height=30)
         
-        dpg.create_viewport(title=f"{{self.app_name}} Installer", width=420, height=340,
+        dpg.create_viewport(title=f"{self.app_name} Installer", width=420, height=340,
                           resizable=False)
         dpg.setup_dearpygui()
         dpg.show_viewport()
@@ -279,6 +281,8 @@ if __name__ == "__main__":
     installer = Installer()
     installer.run()
 '''
+
+    return script_content
 
 
 def create_setup_bat_content(project_name):
