@@ -96,7 +96,7 @@ class BundleDirectoryManager:
     
     def _confirm_overwrite(self, bundle_dir):
         """Ask user confirmation to overwrite existing directory"""
-        from constants import Colors
+        from .constants import Colors
         
         self.printer.warning(f"Bundle directory already exists: {bundle_dir}")
         response = input(Colors.YELLOW + "?" + Colors.RESET + " Overwrite existing bundle? [y/N]: ").strip().lower()

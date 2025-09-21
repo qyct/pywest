@@ -69,7 +69,7 @@ pause
     
     def _find_main_file(self, bundle_dir, project_name):
         """Find main file in bundle directory"""
-        from constants import PyWestConstants
+        from .constants import PyWestConstants
         
         bundle_path = Path(bundle_dir)
         candidates = list(PyWestConstants.MAIN_FILE_CANDIDATES) + [f'{project_name}.py']
