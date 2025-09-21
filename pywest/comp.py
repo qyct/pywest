@@ -1,7 +1,3 @@
-"""
-compression.py - Compression utilities for different archive formats
-"""
-
 import zipfile
 import py7zr
 

@@ -1,18 +1,14 @@
-"""
-bundler.py - Main project bundler orchestration
-"""
-
 from pathlib import Path
 from .config import ProjectConfig, BundleConfig
-from .downloader import PythonDownloader
-from .environment import PythonEnvironment, DependencyInstaller
-from .filemanager import ProjectFileManager, BundleDirectoryManager
-from .runner import RunScriptGenerator
-from .setupscript import SetupScriptGenerator
-from .installer import InstallerGUIGenerator
-from .archiver import ArchiveManager, ArchiveInfoProvider
-from .printer import StylePrinter, HeaderPrinter
-from .validator import ProjectValidator, BundleValidator
+from .dl import PythonDownloader
+from .env import PythonEnvironment, DependencyInstaller
+from .files import ProjectFileManager, BundleDirectoryManager
+from .run import RunScriptGenerator
+from .setup import SetupScriptGenerator
+from .inst import InstallerGUIGenerator
+from .pack import ArchiveManager, ArchiveInfoProvider
+from .log import StylePrinter, HeaderPrinter
+from .valid import ProjectValidator, BundleValidator
 
 
 class ProjectBundler:

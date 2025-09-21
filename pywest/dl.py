@@ -1,14 +1,10 @@
-"""
-downloader.py - Handle downloading and caching of Python embeddable
-"""
-
 import os
 import sys
 import urllib.request
 import zipfile
 from pathlib import Path
-from .printer import StylePrinter
-from .constants import PyWestConstants
+from .log import StylePrinter
+from .const import PyWestConstants
 
 
 class PythonDownloader:

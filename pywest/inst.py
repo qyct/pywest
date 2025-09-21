@@ -1,7 +1,3 @@
-"""
-installer.py - Generate DearPyGui installer scripts
-"""
-
 from pathlib import Path
 
 

@@ -1,10 +1,6 @@
-"""
-validator.py - Validation utilities for projects and bundle creation
-"""
-
 import os
 from pathlib import Path
-from .constants import PyWestConstants
+from .const import PyWestConstants
 
 
 class ProjectValidator:

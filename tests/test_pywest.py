@@ -14,8 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pywest import PyWest, StylePrinter, Colors
 from pywest.utils import get_compression_level_for_zip, get_7zip_compression_args
-from pywest.runner import create_run_script_content, find_main_file
-from pywest.installer import create_setup_bat_content, create_installer_gui_script
+from pywest.run import create_run_script_content, find_main_file
+from pywest.inst import create_setup_bat_content, create_installer_gui_script
 
 
 class TestPyWest:
@@ -177,10 +177,10 @@ class TestProjectStructure:
         try:
             import pywest
             from pywest import PyWest, StylePrinter, Colors, main
-            from pywest.bundler import PyWest as BundlerPyWest
+            from pywest.bundle import PyWest as BundlerPyWest
             from pywest.utils import StylePrinter as UtilsStylePrinter
-            from pywest.runner import create_run_script
-            from pywest.installer import create_setup_script
+            from pywest.run import create_run_script
+            from pywest.inst import create_setup_script
         except ImportError as e:
             pytest.fail(f"Failed to import pywest modules: {e}")
     

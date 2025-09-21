@@ -1,12 +1,8 @@
-"""
-cli.py - Main CLI interface and entry point
-"""
-
 import sys
 import argparse
 from pathlib import Path
-from .printer import StylePrinter
-from .bundler import ProjectBundler
+from .log import StylePrinter
+from .bundle import ProjectBundler
 
 
 class PyWestCLI:

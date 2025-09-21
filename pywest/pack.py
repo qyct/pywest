@@ -1,12 +1,8 @@
-"""
-archiver.py - Handle creation of ZIP and 7-Zip archives
-"""
-
 import zipfile
 import shutil
 from pathlib import Path
-from .printer import StylePrinter
-from .compression import CompressionUtils, ArchiveValidator
+from .log import StylePrinter
+from .comp import CompressionUtils, ArchiveValidator
 
 try:
     import py7zr
@@ -183,7 +179,7 @@ class ArchiveInfoProvider:
     @staticmethod
     def print_archive_completion(archive_path, compression_level):
         """Print archive creation completion information"""
-        from printer import HeaderPrinter
+        from pywest.log import HeaderPrinter
         
         info = ArchiveInfoProvider.get_archive_info(archive_path)
         if not info:

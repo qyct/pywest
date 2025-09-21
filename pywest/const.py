@@ -1,8 +1,3 @@
-"""
-constants.py - Constants and color definitions
-"""
-
-
 class Colors:
     """ANSI color codes for terminal output"""
     RESET = '\033[0m'

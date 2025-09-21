@@ -1,7 +1,3 @@
-"""
-shortcuts.py - Windows shortcuts and registry management
-"""
-
 import os
 import winreg
 from pathlib import Path

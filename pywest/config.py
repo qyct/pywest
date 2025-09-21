@@ -1,10 +1,6 @@
-"""
-config.py - Configuration handling and pyproject.toml parsing
-"""
-
 import tomllib
 from pathlib import Path
-from .printer import StylePrinter
+from .log import StylePrinter
 
 
 class ProjectConfig:
@@ -89,7 +85,7 @@ class BundleConfig:
     """Configuration for bundle creation"""
     
     def __init__(self, python_version=None, compression_level=None):
-        from .constants import PyWestConstants
+        from .const import PyWestConstants
         
         self.python_version = python_version or PyWestConstants.DEFAULT_PYTHON_VERSION
         self.compression_level = compression_level or PyWestConstants.DEFAULT_COMPRESSION_LEVEL
@@ -97,7 +93,7 @@ class BundleConfig:
     
     def validate(self):
         """Validate configuration settings"""
-        from .constants import PyWestConstants
+        from .const import PyWestConstants
         
         if self.python_version not in PyWestConstants.SUPPORTED_PYTHON_VERSIONS:
             raise ValueError(f"Unsupported Python version: {self.python_version}")

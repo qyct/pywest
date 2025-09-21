@@ -1,8 +1,4 @@
-"""
-printer.py - Stylized output printing functionality
-"""
-
-from .constants import Colors
+from .const import Colors
 
 
 class StylePrinter:

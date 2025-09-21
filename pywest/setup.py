@@ -1,7 +1,3 @@
-"""
-setupscript.py - Generate setup.bat scripts for installers
-"""
-
 from pathlib import Path
 
 
