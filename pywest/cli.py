@@ -12,24 +12,13 @@ import tempfile
 import subprocess
 from pathlib import Path
 
-# Use tomllib for Python 3.11+ or fallback to toml
-try:
-    import tomllib
-except ImportError:
-    try:
-        import toml as tomllib
-        # Add compatibility function for older toml library
-        def loads(data):
-            return tomllib.loads(data)
-        tomllib.loads = loads
-    except ImportError:
-        print("Error: Neither tomllib nor toml library is available")
-        sys.exit(1)
+# Use tomllib (Python 3.11+ builtin)
+import tomllib
 
 
 class PyWest:
     def __init__(self):
-        self.python_version = "3.11.9"  # Default Python version
+        self.python_version = "3.12.10"  # Default Python version
         self.python_embed_url = f"https://www.python.org/ftp/python/{self.python_version}/python-{self.python_version}-embed-amd64.zip"
     
     def print_cli_info(self):
@@ -44,15 +33,15 @@ Usage:
     
 Options:
     --zip, -z                        Create bundle as ZIP instead of folder
-    --python-version VERSION         Specify Python version (default: 3.11.9)
+    --python VERSION                 Specify Python version (default: 3.12.10, also supports: 3.11.9)
     
 Description:
     pywest bundles Python projects with embeddable Python for Windows distribution.
-    It reads dependencies from pyproject.toml (if available) and creates a portable package.
+    It reads dependencies from project configuration (if available) and creates a portable package.
     
 Requirements:
     - Windows environment
-    - pyproject.toml file (optional - if present, dependencies will be installed)
+    - Project configuration file (optional - if present, dependencies will be installed)
         """)
     
     def load_pyproject(self, project_path):
@@ -63,12 +52,7 @@ Requirements:
         
         try:
             with open(pyproject_path, 'rb') as f:
-                if hasattr(tomllib, 'load'):
-                    return tomllib.load(f)
-                else:
-                    # Fallback for older toml library
-                    content = f.read().decode('utf-8')
-                    return tomllib.loads(content)
+                return tomllib.load(f)
         except Exception as e:
             print(f"Warning: Could not parse pyproject.toml: {e}")
             return None
@@ -140,7 +124,7 @@ Requirements:
         
         # Install pip
         python_exe = python_dir / "python.exe"
-        subprocess.run([str(python_exe), str(get_pip_path)], check=True)
+        subprocess.run([str(python_exe), str(get_pip_path), "--no-warn-script-location"], check=True)
         
         # Clean up get-pip.py
         get_pip_path.unlink()
@@ -322,13 +306,15 @@ def main():
     parser = argparse.ArgumentParser(description='pywest - Python Project Bundler for Windows')
     parser.add_argument('project_name', nargs='?', help='Name of the project directory to bundle')
     parser.add_argument('--zip', '-z', action='store_true', help='Create bundle as ZIP instead of folder')
-    parser.add_argument('--python-version', default='3.11.9', help='Python version to use (default: 3.11.9)')
+    parser.add_argument('--python', default='3.12.10', 
+                       choices=['3.12.10', '3.11.9'], 
+                       help='Python version to use (default: 3.12.10)')
     
     args = parser.parse_args()
     
     pywest = PyWest()
-    pywest.python_version = args.python_version
-    pywest.python_embed_url = f"https://www.python.org/ftp/python/{args.python_version}/python-{args.python_version}-embed-amd64.zip"
+    pywest.python_version = args.python
+    pywest.python_embed_url = f"https://www.python.org/ftp/python/{args.python}/python-{args.python}-embed-amd64.zip"
     
     if not args.project_name:
         pywest.print_cli_info()
