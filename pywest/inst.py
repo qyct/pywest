@@ -1,28 +1,7 @@
 from pathlib import Path
 
 
-class InstallerGUIGenerator:
-    """Generate GUI installer scripts using DearPyGui"""
-    
-    def __init__(self):
-        pass
-    
-    def create_installer_script(self, bundle_dir, project_name):
-        """Create installer.py GUI script"""
-        installer_content = self._generate_installer_content(project_name)
-        installer_path = Path(bundle_dir) / "installer.py"
-        
-        try:
-            with open(installer_path, 'w', encoding='utf-8') as f:
-                f.write(installer_content)
-            return installer_path
-        except Exception as e:
-            raise Exception(f"Failed to create installer script: {str(e)}")
-    
-    def _generate_installer_content(self, project_name):
-        """Generate complete GUI installer script content"""
-        # Build the installer content using string concatenation to avoid f-string issues
-        installer_template = '''"""
+SETUP_PY_CONTENT = '''"""
 GUI Installer for PROJECT_NAME_PLACEHOLDER
 """
 
@@ -39,7 +18,7 @@ from pathlib import Path
 class Installer:
     def __init__(self, app_name="PROJECT_NAME_PLACEHOLDER"):
         self.app_name = app_name
-        self.bundle_dir = Path(__file__).parent
+        self.bundle_dir = Path(__file__).parent.parent
         self.default_install_path = Path.home() / "AppData" / "Local" / app_name
         self.install_path = str(self.default_install_path)
         self.create_desktop_shortcut = True
@@ -88,7 +67,7 @@ class Installer:
     def add_to_add_remove_programs(self, install_path):
         """Add to Add/Remove Programs"""
         try:
-            key_path = r"SOFTWARE/Microsoft/Windows/CurrentVersion/Uninstall/" + self.app_name
+            key_path = r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + self.app_name
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
                 winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, self.app_name)
                 winreg.SetValueEx(key, "UninstallString", 0, winreg.REG_SZ, 
@@ -107,11 +86,11 @@ class Installer:
             'cd /d "%~dp0"',
             "",
             ":: Remove shortcuts",
-            f'del "%USERPROFILE%\\Desktop\\{self.app_name}.lnk" 2>nul',
-            f'del "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\{self.app_name}.lnk" 2>nul',
+            f'del "%USERPROFILE%\\\\Desktop\\\\{self.app_name}.lnk" 2>nul',
+            f'del "%APPDATA%\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\{self.app_name}.lnk" 2>nul',
             "",
             ":: Remove from Add/Remove Programs",
-            f'reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{self.app_name}" /f 2>nul',
+            f'reg delete "HKCU\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\{self.app_name}" /f 2>nul',
             "",
             ":: Remove installation directory",
             "cd ..",
@@ -140,7 +119,7 @@ class Installer:
             
             # Copy all files except the installer itself
             for item in self.bundle_dir.iterdir():
-                if item.name in ['setup.bat', 'installer.py']:
+                if item.name in ['setup.bat']:
                     continue
                     
                 dest = install_path / item.name
@@ -266,9 +245,28 @@ if __name__ == "__main__":
     installer = Installer()
     installer.run()
 '''
+
+
+class InstallerGUIGenerator:
+    """Generate GUI installer scripts using DearPyGui"""
+    
+    def __init__(self):
+        pass
+    
+    def create_installer_script(self, bundle_dir, project_name):
+        """Create setup.py GUI script in bin folder"""
+        bin_dir = Path(bundle_dir) / "bin"
+        bin_dir.mkdir(exist_ok=True)
         
-        # Replace placeholder with actual project name
-        return installer_template.replace("PROJECT_NAME_PLACEHOLDER", project_name)
+        installer_content = SETUP_PY_CONTENT.replace("PROJECT_NAME_PLACEHOLDER", project_name)
+        setup_path = bin_dir / "setup.py"
+        
+        try:
+            with open(setup_path, 'w', encoding='utf-8') as f:
+                f.write(installer_content)
+            return setup_path
+        except Exception as e:
+            raise Exception(f"Failed to create setup script: {str(e)}")
 
 
 class InstallerValidator:

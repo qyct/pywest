@@ -28,7 +28,7 @@ set PYTHONPATH=%~dp0
 set PATH=%~dp0bin;%PATH%
 
 echo Starting {project_name} installer...
-bin\\python.exe installer.py
+bin\\python.exe bin\\setup.py
 
 if %errorlevel% neq 0 (
     echo.
