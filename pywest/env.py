@@ -12,6 +12,7 @@ class PythonEnvironment:
     def __init__(self, python_dir):
         self.python_dir = Path(python_dir)
         self.python_exe = self.python_dir / "python.exe"
+        self.pythonw_exe = self.python_dir / "pythonw.exe"  # Add pythonw.exe support
         self.printer = StylePrinter()
         self.pip_downloader = GetPipDownloader()
     
@@ -54,10 +55,16 @@ class PythonEnvironment:
     
     def _install_pip(self, get_pip_path):
         """Install pip using get-pip.py"""
+        # Use CREATE_NO_WINDOW to hide console
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+        
         with open(os.devnull, 'w') as devnull:
             result = subprocess.run([
                 str(self.python_exe), str(get_pip_path), "--no-warn-script-location"
-            ], stdout=devnull, stderr=devnull, check=False)
+            ], stdout=devnull, stderr=devnull, check=False, 
+            startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
             
             if result.returncode != 0:
                 raise Exception("Failed to install pip")
@@ -69,8 +76,14 @@ class PythonEnvironment:
         if quiet:
             cmd.append("--quiet")
         
+        # Use CREATE_NO_WINDOW to hide console
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = subprocess.SW_HIDE
+        
         with open(os.devnull, 'w') as devnull:
-            result = subprocess.run(cmd, stdout=devnull, stderr=devnull, check=False)
+            result = subprocess.run(cmd, stdout=devnull, stderr=devnull, check=False,
+                                  startupinfo=startupinfo, creationflags=subprocess.CREATE_NO_WINDOW)
             
             if result.returncode != 0:
                 raise Exception(f"Failed to install {package_name}")
@@ -98,18 +111,12 @@ class DependencyInstaller:
             self.printer.dim("No project dependencies to install")
             return
         
-        if len(dependencies) == 1:
-            self.printer.progress(f"Installing {dependencies[0]}...")
-        else:
-            self.printer.progress(f"Installing {len(dependencies)} project dependencies...")
+        self.printer.progress("Installing project dependencies...")
         
         for dep in dependencies:
             self.python_env.install_package(dep)
         
-        if len(dependencies) == 1:
-            self.printer.progress_done(f"{dependencies[0]} installed")
-        else:
-            self.printer.progress_done(f"{len(dependencies)} project dependencies installed")
+        self.printer.progress_done("Project dependencies installed")
     
     def install_all_dependencies(self, project_dependencies=None):
         """Install both required and project dependencies in one combined log"""
@@ -117,16 +124,11 @@ class DependencyInstaller:
         if project_dependencies:
             all_deps.extend(project_dependencies)
         
-        if len(all_deps) == 1:
-            self.printer.progress(f"Installing {all_deps[0]}...")
-        else:
-            self.printer.progress(f"Installing {len(all_deps)} dependencies...")
+        # Changed: Always say "Installing dependencies" without count
+        self.printer.progress("Installing dependencies...")
         
         # Install all dependencies
         for dep in all_deps:
             self.python_env.install_package(dep)
         
-        if len(all_deps) == 1:
-            self.printer.progress_done(f"{all_deps[0]} installed")
-        else:
-            self.printer.progress_done(f"{len(all_deps)} dependencies installed")
+        self.printer.progress_done("Dependencies installed")

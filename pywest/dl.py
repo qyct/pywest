@@ -2,6 +2,7 @@ import os
 import sys
 import urllib.request
 import zipfile
+import shutil
 from pathlib import Path
 from .log import StylePrinter
 from .const import PyWestConstants
@@ -58,6 +59,14 @@ class PythonDownloader:
         try:
             with zipfile.ZipFile(cached_path, 'r') as zip_ref:
                 zip_ref.extractall(target_dir)
+            
+            # Ensure pythonw.exe exists - copy from python.exe if missing
+            python_exe = target_dir / "python.exe"
+            pythonw_exe = target_dir / "pythonw.exe"
+            
+            if python_exe.exists() and not pythonw_exe.exists():
+                shutil.copy2(python_exe, pythonw_exe)
+                
         except Exception as e:
             raise Exception(f"Failed to extract Python: {str(e)}")
         

@@ -19,7 +19,7 @@ class Installer:
     def __init__(self, app_name="PROJECT_NAME_PLACEHOLDER"):
         self.app_name = app_name
         self.bundle_dir = Path(__file__).parent.parent
-        self.default_install_path = Path.home() / "AppData" / "Local" / app_name
+        self.default_install_path = Path("C:/Program Files") / app_name
         self.install_path = str(self.default_install_path)
         self.create_desktop_shortcut = True
         self.create_startmenu_shortcut = True
@@ -191,27 +191,39 @@ class Installer:
         """Run the installer GUI"""
         dpg.create_context()
         
+        # Set default theme to Windows-like gray
+        with dpg.theme() as global_theme:
+            with dpg.theme_component(dpg.mvAll):
+                dpg.add_theme_color(dpg.mvThemeCol_WindowBg, (240, 240, 240))
+                dpg.add_theme_color(dpg.mvThemeCol_ChildBg, (240, 240, 240))
+                dpg.add_theme_color(dpg.mvThemeCol_PopupBg, (240, 240, 240))
+                dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (255, 255, 255))
+                dpg.add_theme_color(dpg.mvThemeCol_Text, (0, 0, 0))
+                dpg.add_theme_color(dpg.mvThemeCol_CheckMark, (0, 120, 215))
+                dpg.add_theme_color(dpg.mvThemeCol_Button, (225, 225, 225))
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (229, 241, 251))
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (204, 228, 247))
+        
+        dpg.bind_theme(global_theme)
+        
         # File dialog for folder selection
         with dpg.file_dialog(directory_selector=True, show=False, 
                            callback=self.folder_selected, tag="file_dialog",
                            width=700, height=400):
             dpg.add_file_extension("", color=(255, 255, 255, 255))
         
-        with dpg.window(tag="main_window", label=f"{self.app_name} Installer", 
-                       width=400, height=320, no_resize=True, no_collapse=True):
+        with dpg.window(tag="main_window", label="", 
+                       width=450, height=280, no_resize=True, no_collapse=True,
+                       no_title_bar=True):
             
-            dpg.add_text(f"Welcome to {self.app_name} Setup")
-            dpg.add_separator()
-            
-            # Installation path
-            dpg.add_text("Installation path:")
-            dpg.add_input_text(tag="install_path", default_value=self.install_path, width=280)
-            dpg.add_button(label="Browse...", callback=self.browse_folder, width=80)
+            # Installation path group
+            with dpg.group(horizontal=True):
+                dpg.add_input_text(tag="install_path", default_value=self.install_path, width=350)
+                dpg.add_button(label="Browse...", callback=self.browse_folder, width=80)
             
             dpg.add_separator()
             
-            # Options
-            dpg.add_text("Options:")
+            # Checkboxes without "Options:" label
             dpg.add_checkbox(tag="desktop_shortcut", label="Create desktop shortcut", 
                            default_value=self.create_desktop_shortcut)
             dpg.add_checkbox(tag="startmenu_shortcut", label="Create start menu shortcut",
@@ -231,7 +243,7 @@ class Installer:
             dpg.add_button(tag="install_button", label="Install", 
                          callback=self.start_installation, width=-1, height=30)
         
-        dpg.create_viewport(title=f"{self.app_name} Installer", width=420, height=340,
+        dpg.create_viewport(title="Installer", width=470, height=300,
                           resizable=False)
         dpg.setup_dearpygui()
         dpg.show_viewport()
