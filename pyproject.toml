@@ -25,9 +25,7 @@ classifiers = [
 ]
 keywords = ["packaging", "bundling", "windows", "embeddable", "python"]
 requires-python = ">=3.8"
-dependencies = [
-    "toml>=0.10.2",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
@@ -35,4 +33,4 @@ dev = [
 ]
 
 [project.scripts]
-pywest = "pywest.main:main"
+pywest = "pywest.cli:main"

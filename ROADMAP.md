@@ -12,4 +12,3 @@
 - it also uncomments import site section in .pth file of embeddable python
 - there will be single file inside pywest folder that is main.py and there will single file inside tests folder, for now give only pyproject.toml and main.py
 
-- [ ] More Features

@@ -10,8 +10,21 @@ import zipfile
 import urllib.request
 import tempfile
 import subprocess
-import toml
 from pathlib import Path
+
+# Use tomllib for Python 3.11+ or fallback to toml
+try:
+    import tomllib
+except ImportError:
+    try:
+        import toml as tomllib
+        # Add compatibility function for older toml library
+        def loads(data):
+            return tomllib.loads(data)
+        tomllib.loads = loads
+    except ImportError:
+        print("Error: Neither tomllib nor toml library is available")
+        sys.exit(1)
 
 
 class PyWest:
@@ -26,47 +39,61 @@ pywest - Python Project Bundler for Windows
 
 Usage:
     pywest                           Show this help information
-    pywest <project_name>            Bundle project as ZIP file (default)
-    pywest <project_name> --folder   Bundle project as folder
+    pywest <project_name>            Bundle project as folder (default)
+    pywest <project_name> --zip      Bundle project as ZIP file
     
 Options:
-    --folder, -f                     Create bundle as folder instead of ZIP
+    --zip, -z                        Create bundle as ZIP instead of folder
     --python-version VERSION         Specify Python version (default: 3.11.9)
     
 Description:
     pywest bundles Python projects with embeddable Python for Windows distribution.
-    It reads dependencies from pyproject.toml and creates a portable package.
+    It reads dependencies from pyproject.toml (if available) and creates a portable package.
     
 Requirements:
-    - pyproject.toml file in the project directory
-    - Single entry point defined in pyproject.toml
     - Windows environment
+    - pyproject.toml file (optional - if present, dependencies will be installed)
         """)
     
     def load_pyproject(self, project_path):
         """Load and parse pyproject.toml"""
         pyproject_path = project_path / "pyproject.toml"
         if not pyproject_path.exists():
-            raise FileNotFoundError(f"pyproject.toml not found in {project_path}")
+            return None
         
-        with open(pyproject_path, 'r', encoding='utf-8') as f:
-            return toml.load(f)
+        try:
+            with open(pyproject_path, 'rb') as f:
+                if hasattr(tomllib, 'load'):
+                    return tomllib.load(f)
+                else:
+                    # Fallback for older toml library
+                    content = f.read().decode('utf-8')
+                    return tomllib.loads(content)
+        except Exception as e:
+            print(f"Warning: Could not parse pyproject.toml: {e}")
+            return None
     
     def get_entry_point(self, pyproject_data):
         """Extract entry point from pyproject.toml"""
+        if not pyproject_data:
+            return None, None
+            
         try:
             scripts = pyproject_data['project']['scripts']
             if len(scripts) != 1:
-                raise ValueError("pywest requires exactly one entry point")
+                print("Warning: Multiple entry points found, using first one")
             
             entry_name, entry_point = next(iter(scripts.items()))
             return entry_name, entry_point
         except KeyError:
-            raise KeyError("No entry points found in pyproject.toml")
+            return None, None
     
     def get_dependencies(self, pyproject_data):
         """Extract dependencies from pyproject.toml"""
         dependencies = []
+        
+        if not pyproject_data:
+            return dependencies
         
         # Get main dependencies
         if 'project' in pyproject_data and 'dependencies' in pyproject_data['project']:
@@ -136,16 +163,50 @@ Requirements:
     
     def create_run_script(self, bundle_dir, entry_name, entry_point, project_name):
         """Create run.bat script"""
-        bat_content = f"""@echo off
+        if entry_point:
+            # If entry point is defined, use it
+            module_name, func_name = entry_point.split(':')
+            bat_content = f"""@echo off
+cd /d "%~dp0"
 set PYTHONPATH=%~dp0
 set PATH=%~dp0bin;%PATH%
 
-"%~dp0bin\\python.exe" -c "
-import sys
-sys.path.insert(0, '.')
-from {entry_point.split(':')[0]} import {entry_point.split(':')[1]}
-{entry_point.split(':')[1]}()
-"
+bin\\python.exe -c "import sys; sys.path.insert(0, '.'); from {module_name} import {func_name}; {func_name}()"
+
+pause
+"""
+        else:
+            # If no entry point, try to find main.py or create a simple runner
+            main_files = ['main.py', f'{project_name}.py', '__main__.py']
+            main_file = None
+            
+            for mf in main_files:
+                if (bundle_dir / mf).exists():
+                    main_file = mf
+                    break
+            
+            if main_file:
+                bat_content = f"""@echo off
+cd /d "%~dp0"
+set PYTHONPATH=%~dp0
+set PATH=%~dp0bin;%PATH%
+
+bin\\python.exe {main_file} %*
+
+pause
+"""
+            else:
+                # Create a generic Python launcher
+                bat_content = f"""@echo off
+cd /d "%~dp0"
+set PYTHONPATH=%~dp0
+set PATH=%~dp0bin;%PATH%
+
+echo Starting Python environment for {project_name}
+echo Use 'bin\\python.exe script.py' to run Python scripts
+echo.
+
+bin\\python.exe
 
 pause
 """
@@ -156,13 +217,18 @@ pause
         
         print(f"Created run.bat script")
     
-    def copy_project_files(self, project_path, bundle_dir):
+    def copy_project_files(self, project_path, bundle_dir, exclude_pyproject=True):
         """Copy project files to bundle directory"""
         print("Copying project files...")
         
-        # Copy all Python files and important directories
+        # Files and directories to exclude
+        exclude_items = {'.git', '__pycache__', '.pytest_cache', 'dist', 'build', '.venv', 'venv'}
+        if exclude_pyproject:
+            exclude_items.add('pyproject.toml')
+        
+        # Copy all relevant files and directories
         for item in project_path.iterdir():
-            if item.name in ['.git', '__pycache__', '.pytest_cache', 'dist', 'build']:
+            if item.name in exclude_items:
                 continue
             
             dest = bundle_dir / item.name
@@ -176,7 +242,7 @@ pause
         project_path = Path(project_path).resolve()
         project_name = project_path.name
         
-        # Load pyproject.toml
+        # Load pyproject.toml (optional)
         pyproject_data = self.load_pyproject(project_path)
         entry_name, entry_point = self.get_entry_point(pyproject_data)
         dependencies = self.get_dependencies(pyproject_data)
@@ -203,8 +269,8 @@ pause
             bin_dir = bundle_dir / "bin"
             shutil.copytree(python_dir, bin_dir)
             
-            # Copy project files
-            self.copy_project_files(project_path, bundle_dir)
+            # Copy project files (exclude pyproject.toml from bundle)
+            self.copy_project_files(project_path, bundle_dir, exclude_pyproject=True)
             
             # Create run script
             self.create_run_script(bundle_dir, entry_name, entry_point, project_name)
@@ -233,7 +299,7 @@ pause
         print(f"ZIP bundle created successfully at: {zip_path}")
         return zip_path
     
-    def bundle_project(self, project_name, bundle_type='zip'):
+    def bundle_project(self, project_name, bundle_type='folder'):
         """Bundle the project"""
         project_path = Path(project_name).resolve()
         
@@ -255,7 +321,7 @@ pause
 def main():
     parser = argparse.ArgumentParser(description='pywest - Python Project Bundler for Windows')
     parser.add_argument('project_name', nargs='?', help='Name of the project directory to bundle')
-    parser.add_argument('--folder', '-f', action='store_true', help='Create bundle as folder instead of ZIP')
+    parser.add_argument('--zip', '-z', action='store_true', help='Create bundle as ZIP instead of folder')
     parser.add_argument('--python-version', default='3.11.9', help='Python version to use (default: 3.11.9)')
     
     args = parser.parse_args()
@@ -269,7 +335,7 @@ def main():
         return
     
     try:
-        bundle_type = 'folder' if args.folder else 'zip'
+        bundle_type = 'zip' if args.zip else 'folder'
         result = pywest.bundle_project(args.project_name, bundle_type)
         print(f"\n✅ Successfully created bundle!")
         
