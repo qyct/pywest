@@ -26,6 +26,13 @@ class RunScriptGenerator:
     def _create_entry_point_script(self, entry_point):
         """Create script content for entry point execution"""
         module_name, func_name = entry_point.split(':')
+        
+        # Handle the src -> core rename in module paths
+        if module_name.startswith('src.'):
+            module_name = module_name.replace('src.', 'core.', 1)
+        elif module_name == 'src':
+            module_name = 'core'
+        
         return f'''@echo off
 cd /d "%~dp0"
 set PYTHONPATH=%~dp0

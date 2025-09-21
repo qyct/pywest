@@ -27,7 +27,7 @@ class Installer:
         self.create_startmenu_shortcut_value = True
         self.add_to_programs_value = True
         self.installing = False
-        self.icon_path = Path(__file__).parent / "icon.png"
+        self.icon_path = Path(__file__).parent.parent / "core" / "icon.png"
         
     def browse_folder(self):
         """Browse for installation folder"""
@@ -276,15 +276,11 @@ class Installer:
                        width=280, height=300, no_resize=True, no_collapse=True,
                        no_title_bar=True):
             
-            # Icon and title header
+            # Icon header (without project name label)
             if icon_texture:
                 with dpg.group(horizontal=True):
                     dpg.add_image(icon_texture)
-                    with dpg.group():
-                        dpg.add_spacer(height=10)
-                        dpg.add_text(f"Install {self.app_name}", color=(0, 0, 0))
-            else:
-                dpg.add_text(f"Install {self.app_name}", color=(0, 0, 0))
+                    dpg.add_spacer(width=10)
             
             dpg.add_separator()
             
@@ -316,7 +312,7 @@ class Installer:
             dpg.add_button(tag="install_button", label="Install", 
                          callback=self.start_installation, width=-1, height=30)
         
-        dpg.create_viewport(title=f"{self.app_name} Installer", width=300, height=320,
+        dpg.create_viewport(title="Installer", width=300, height=320,
                           resizable=False)
         dpg.setup_dearpygui()
         dpg.show_viewport()

@@ -41,11 +41,11 @@ class ProjectFileManager:
                     shutil.copy2(item, dest)
                     file_count += 1
             
-            # Copy icon to bin folder if specified
+            # Copy icon to core folder if specified
             if icon_path and icon_path.exists():
-                bin_dir = target_path / "bin"
-                bin_dir.mkdir(exist_ok=True)
-                icon_dest = bin_dir / "icon.png"
+                core_dir = target_path / "core"
+                core_dir.mkdir(exist_ok=True)
+                icon_dest = core_dir / "icon.png"
                 shutil.copy2(icon_path, icon_dest)
                 file_count += 1
             
