@@ -1,3 +1,4 @@
+import py7zr
 from pathlib import Path
 from .config import ProjectConfig, BundleConfig
 from .dl import PythonDownloader
@@ -177,24 +178,11 @@ class BundlerWorkflow:
     
     def create_7zip_bundle(self, project_name, bundle_name=None):
         """Create 7-Zip bundle workflow"""
-        try:
-            return self.bundler.bundle_project(project_name, '7zip', bundle_name)
-        except Exception as e:
-            if "py7zr library" in str(e):
-                self.printer.error("7-Zip support requires py7zr library: pip install py7zr")
-            raise
+        return self.bundler.bundle_project(project_name, '7zip', bundle_name)
     
     def get_supported_formats(self):
         """Get list of supported bundle formats"""
-        formats = ['folder', 'zip']
-        
-        try:
-            import py7zr
-            formats.append('7zip')
-        except ImportError:
-            pass
-        
-        return formats
+        return ['folder', 'zip', '7zip']
 
 
 class BundlerStatus:

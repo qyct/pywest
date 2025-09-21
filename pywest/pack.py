@@ -1,14 +1,9 @@
 import zipfile
 import shutil
+import py7zr
 from pathlib import Path
-from .log import StylePrinter
+from .log import StylePrinter, HeaderPrinter
 from .comp import CompressionUtils, ArchiveValidator
-
-try:
-    import py7zr
-    PY7ZR_AVAILABLE = True
-except ImportError:
-    PY7ZR_AVAILABLE = False
 
 
 class ZipArchiver:
@@ -68,9 +63,6 @@ class SevenZipArchiver:
     
     def create_7zip_archive(self, bundle_dir, output_path, archive_name):
         """Create 7-Zip archive from bundle directory"""
-        if not PY7ZR_AVAILABLE:
-            raise Exception("py7zr library is not installed. Install it with: pip install py7zr")
-        
         archive_path = Path(output_path) / archive_name
         
         # Validate archive creation
@@ -178,9 +170,7 @@ class ArchiveInfoProvider:
     
     @staticmethod
     def print_archive_completion(archive_path, compression_level):
-        """Print archive creation completion information"""
-        from pywest.log import HeaderPrinter
-        
+        """Print archive creation completion information"""        
         info = ArchiveInfoProvider.get_archive_info(archive_path)
         if not info:
             return

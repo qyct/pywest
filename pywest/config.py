@@ -1,6 +1,7 @@
 import tomllib
 from pathlib import Path
 from .log import StylePrinter
+from .const import PyWestConstants
 
 
 class ProjectConfig:
@@ -69,32 +70,18 @@ class ProjectConfig:
                 pass
         
         return self.project_path.name
-    
-    def get_project_version(self):
-        """Get project version from config"""
-        if self.config_data:
-            try:
-                return self.config_data['project']['version']
-            except KeyError:
-                pass
-        
-        return "1.0.0"
 
 
 class BundleConfig:
     """Configuration for bundle creation"""
     
     def __init__(self, python_version=None, compression_level=None):
-        from .const import PyWestConstants
-        
         self.python_version = python_version or PyWestConstants.DEFAULT_PYTHON_VERSION
         self.compression_level = compression_level or PyWestConstants.DEFAULT_COMPRESSION_LEVEL
         self.python_embed_url = f"{PyWestConstants.PYTHON_BASE_URL}/{self.python_version}/python-{self.python_version}-embed-amd64.zip"
     
     def validate(self):
         """Validate configuration settings"""
-        from .const import PyWestConstants
-        
         if self.python_version not in PyWestConstants.SUPPORTED_PYTHON_VERSIONS:
             raise ValueError(f"Unsupported Python version: {self.python_version}")
         

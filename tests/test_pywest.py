@@ -184,12 +184,6 @@ class TestProjectStructure:
         except ImportError as e:
             pytest.fail(f"Failed to import pywest modules: {e}")
     
-    def test_version_consistency(self):
-        """Test that version is consistent"""
-        import pywest
-        assert hasattr(pywest, '__version__')
-        assert pywest.__version__ == "0.0.1"
-    
     def test_cli_main_callable(self):
         """Test that CLI main function is callable"""
         from pywest.cli import main

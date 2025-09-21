@@ -112,8 +112,21 @@ class DependencyInstaller:
             self.printer.progress_done(f"{len(dependencies)} project dependencies installed")
     
     def install_all_dependencies(self, project_dependencies=None):
-        """Install both required and project dependencies"""
-        self.install_required_dependencies()
-        
+        """Install both required and project dependencies in one combined log"""
+        all_deps = list(PyWestConstants.REQUIRED_INSTALLER_DEPS)
         if project_dependencies:
-            self.install_project_dependencies(project_dependencies)
+            all_deps.extend(project_dependencies)
+        
+        if len(all_deps) == 1:
+            self.printer.progress(f"Installing {all_deps[0]}...")
+        else:
+            self.printer.progress(f"Installing {len(all_deps)} dependencies...")
+        
+        # Install all dependencies
+        for dep in all_deps:
+            self.python_env.install_package(dep)
+        
+        if len(all_deps) == 1:
+            self.printer.progress_done(f"{all_deps[0]} installed")
+        else:
+            self.printer.progress_done(f"{len(all_deps)} dependencies installed")

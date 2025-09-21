@@ -1,4 +1,5 @@
 from pathlib import Path
+from .const import PyWestConstants
 
 
 class RunScriptGenerator:
@@ -65,8 +66,6 @@ pause
     
     def _find_main_file(self, bundle_dir, project_name):
         """Find main file in bundle directory"""
-        from .const import PyWestConstants
-        
         bundle_path = Path(bundle_dir)
         candidates = list(PyWestConstants.MAIN_FILE_CANDIDATES) + [f'{project_name}.py']
         
@@ -83,36 +82,3 @@ pause
                 f.write(content)
         except Exception as e:
             raise Exception(f"Failed to create run script: {str(e)}")
-
-
-class RunScriptValidator:
-    """Validate run script creation"""
-    
-    @staticmethod
-    def validate_entry_point(entry_point):
-        """Validate entry point format"""
-        if not entry_point:
-            return True, None
-        
-        if ':' not in entry_point:
-            return False, "Entry point must be in format 'module:function'"
-        
-        parts = entry_point.split(':')
-        if len(parts) != 2:
-            return False, "Entry point must contain exactly one colon"
-        
-        module_name, func_name = parts
-        if not module_name or not func_name:
-            return False, "Both module name and function name are required"
-        
-        return True, None
-    
-    @staticmethod
-    def get_script_type(entry_point, main_file):
-        """Determine the type of script to create"""
-        if entry_point:
-            return "entry_point"
-        elif main_file:
-            return "main_file"
-        else:
-            return "generic"
