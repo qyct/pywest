@@ -13,6 +13,8 @@ import threading
 import winreg
 import sys
 from pathlib import Path
+from PIL import Image
+import tempfile
 
 
 class Installer:
@@ -21,10 +23,11 @@ class Installer:
         self.bundle_dir = Path(__file__).parent.parent
         self.default_install_path = Path("C:/Program Files") / app_name
         self.install_path = str(self.default_install_path)
-        self.create_desktop_shortcut = True
-        self.create_startmenu_shortcut = True
-        self.add_to_programs = True
+        self.create_desktop_shortcut_value = True
+        self.create_startmenu_shortcut_value = True
+        self.add_to_programs_value = True
         self.installing = False
+        self.icon_path = Path(__file__).parent / "icon.png"
         
     def browse_folder(self):
         """Browse for installation folder"""
@@ -36,7 +39,7 @@ class Installer:
             self.install_path = app_data['file_path_name']
             dpg.set_value("install_path", self.install_path)
     
-    def create_desktop_shortcut(self, install_path):
+    def create_desktop_shortcut_func(self, install_path):
         """Create desktop shortcut"""
         try:
             import win32com.client
@@ -45,12 +48,26 @@ class Installer:
             shortcut = shell.CreateShortCut(os.path.join(desktop, f"{self.app_name}.lnk"))
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
-            shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+            
+            # Use icon.png if available, otherwise python.exe
+            if (install_path / "bin" / "icon.png").exists():
+                # Convert PNG to ICO temporarily for shortcut
+                try:
+                    png_path = install_path / "bin" / "icon.png"
+                    ico_path = install_path / "bin" / "icon.ico"
+                    img = Image.open(png_path)
+                    img.save(ico_path, format='ICO', sizes=[(16,16), (32,32), (48,48)])
+                    shortcut.IconLocation = str(ico_path)
+                except:
+                    shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+            else:
+                shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+                
             shortcut.save()
         except:
             pass
     
-    def create_startmenu_shortcut(self, install_path):
+    def create_startmenu_shortcut_func(self, install_path):
         """Create start menu shortcut"""
         try:
             import win32com.client
@@ -59,7 +76,21 @@ class Installer:
             shortcut = shell.CreateShortCut(os.path.join(programs, f"{self.app_name}.lnk"))
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
-            shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+            
+            # Use icon.png if available, otherwise python.exe
+            if (install_path / "bin" / "icon.png").exists():
+                # Convert PNG to ICO temporarily for shortcut
+                try:
+                    png_path = install_path / "bin" / "icon.png"
+                    ico_path = install_path / "bin" / "icon.ico"
+                    img = Image.open(png_path)
+                    img.save(ico_path, format='ICO', sizes=[(16,16), (32,32), (48,48)])
+                    shortcut.IconLocation = str(ico_path)
+                except:
+                    shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+            else:
+                shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+                
             shortcut.save()
         except:
             pass
@@ -140,15 +171,15 @@ class Installer:
                         dpg.set_value("progress_bar", progress)
             
             # Create shortcuts and registry entries
-            if self.create_desktop_shortcut:
+            if self.create_desktop_shortcut_value:
                 dpg.set_value("status_text", "Creating desktop shortcut...")
-                self.create_desktop_shortcut(install_path)
+                self.create_desktop_shortcut_func(install_path)
             
-            if self.create_startmenu_shortcut:
+            if self.create_startmenu_shortcut_value:
                 dpg.set_value("status_text", "Creating start menu shortcut...")
-                self.create_startmenu_shortcut(install_path)
+                self.create_startmenu_shortcut_func(install_path)
             
-            if self.add_to_programs:
+            if self.add_to_programs_value:
                 dpg.set_value("status_text", "Adding to Add/Remove Programs...")
                 self.add_to_add_remove_programs(install_path)
                 self.create_uninstaller(install_path)
@@ -174,9 +205,9 @@ class Installer:
             return
             
         self.install_path = dpg.get_value("install_path")
-        self.create_desktop_shortcut = dpg.get_value("desktop_shortcut")
-        self.create_startmenu_shortcut = dpg.get_value("startmenu_shortcut") 
-        self.add_to_programs = dpg.get_value("add_remove_programs")
+        self.create_desktop_shortcut_value = dpg.get_value("desktop_shortcut")
+        self.create_startmenu_shortcut_value = dpg.get_value("startmenu_shortcut") 
+        self.add_to_programs_value = dpg.get_value("add_remove_programs")
         
         self.installing = True
         dpg.set_value("install_button", "Installing...")
@@ -187,9 +218,38 @@ class Installer:
         thread.daemon = True
         thread.start()
     
+    def load_icon_texture(self):
+        """Load icon as texture for display in GUI"""
+        if not self.icon_path.exists():
+            return None
+            
+        try:
+            # Load and resize icon for GUI display
+            with Image.open(self.icon_path) as img:
+                # Resize to 48x48 for display
+                img = img.resize((48, 48), Image.Resampling.LANCZOS)
+                img = img.convert('RGBA')
+                
+                # Convert to format DearPyGui expects
+                width, height = img.size
+                img_data = list(img.getdata())
+                
+                # Convert RGBA tuples to flat list of floats (0-1 range)
+                flat_data = []
+                for pixel in img_data:
+                    flat_data.extend([pixel[0]/255.0, pixel[1]/255.0, pixel[2]/255.0, pixel[3]/255.0])
+                
+                return dpg.add_raw_texture(width, height, flat_data, format=dpg.mvFormat_Float_rgba)
+        except Exception as e:
+            print(f"Could not load icon: {e}")
+            return None
+    
     def run(self):
         """Run the installer GUI"""
         dpg.create_context()
+        
+        # Load icon texture
+        icon_texture = self.load_icon_texture()
         
         # Set default theme to Windows-like gray
         with dpg.theme() as global_theme:
@@ -213,28 +273,41 @@ class Installer:
             dpg.add_file_extension("", color=(255, 255, 255, 255))
         
         with dpg.window(tag="main_window", label="", 
-                       width=450, height=280, no_resize=True, no_collapse=True,
+                       width=280, height=300, no_resize=True, no_collapse=True,
                        no_title_bar=True):
             
-            # Installation path group
-            with dpg.group(horizontal=True):
-                dpg.add_input_text(tag="install_path", default_value=self.install_path, width=350)
-                dpg.add_button(label="Browse...", callback=self.browse_folder, width=80)
+            # Icon and title header
+            if icon_texture:
+                with dpg.group(horizontal=True):
+                    dpg.add_image(icon_texture)
+                    with dpg.group():
+                        dpg.add_spacer(height=10)
+                        dpg.add_text(f"Install {self.app_name}", color=(0, 0, 0))
+            else:
+                dpg.add_text(f"Install {self.app_name}", color=(0, 0, 0))
             
             dpg.add_separator()
             
-            # Checkboxes without "Options:" label
-            dpg.add_checkbox(tag="desktop_shortcut", label="Create desktop shortcut", 
-                           default_value=self.create_desktop_shortcut)
-            dpg.add_checkbox(tag="startmenu_shortcut", label="Create start menu shortcut",
-                           default_value=self.create_startmenu_shortcut) 
-            dpg.add_checkbox(tag="add_remove_programs", label="Add to Add/Remove Programs",
-                           default_value=self.add_to_programs)
+            # Installation path group
+            dpg.add_text("Install Location:", color=(0, 0, 0))
+            with dpg.group(horizontal=True):
+                dpg.add_input_text(tag="install_path", default_value=self.install_path, width=180)
+                dpg.add_button(label="...", callback=self.browse_folder, width=25)
+            
+            dpg.add_separator()
+            
+            # Checkboxes
+            dpg.add_checkbox(tag="desktop_shortcut", label="Desktop shortcut", 
+                           default_value=self.create_desktop_shortcut_value)
+            dpg.add_checkbox(tag="startmenu_shortcut", label="Start menu shortcut",
+                           default_value=self.create_startmenu_shortcut_value) 
+            dpg.add_checkbox(tag="add_remove_programs", label="Add to Programs list",
+                           default_value=self.add_to_programs_value)
             
             dpg.add_separator()
             
             # Progress
-            dpg.add_text("Ready to install", tag="status_text")
+            dpg.add_text("Ready to install", tag="status_text", color=(0, 0, 0))
             dpg.add_progress_bar(tag="progress_bar", default_value=0.0, width=-1)
             
             dpg.add_separator()
@@ -243,7 +316,7 @@ class Installer:
             dpg.add_button(tag="install_button", label="Install", 
                          callback=self.start_installation, width=-1, height=30)
         
-        dpg.create_viewport(title="Installer", width=470, height=300,
+        dpg.create_viewport(title=f"{self.app_name} Installer", width=300, height=320,
                           resizable=False)
         dpg.setup_dearpygui()
         dpg.show_viewport()
@@ -313,6 +386,11 @@ class InstallerValidator:
             import win32com.client
         except ImportError:
             missing_deps.append("pywin32")
+        
+        try:
+            import PIL
+        except ImportError:
+            missing_deps.append("Pillow")
         
         if missing_deps:
             return False, f"Missing installer dependencies: {', '.join(missing_deps)}"

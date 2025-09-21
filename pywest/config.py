@@ -70,6 +70,22 @@ class ProjectConfig:
                 pass
         
         return self.project_path.name
+    
+    def get_icon_path(self):
+        """Get icon path from pyproject.toml"""
+        if not self.config_data:
+            return None
+            
+        try:
+            icon = self.config_data['project'].get('icon')
+            if icon and icon.endswith('.png'):
+                icon_path = self.project_path / icon
+                if icon_path.exists():
+                    return icon_path
+        except (KeyError, TypeError):
+            pass
+        
+        return None
 
 
 class BundleConfig:

@@ -10,7 +10,7 @@ class ProjectFileManager:
     def __init__(self):
         self.printer = StylePrinter()
     
-    def copy_project_files(self, source_path, target_path, exclude_pyproject=True):
+    def copy_project_files(self, source_path, target_path, exclude_pyproject=True, icon_path=None):
         """Copy project files to target directory"""
         self.printer.progress("Copying project files...")
         
@@ -28,7 +28,11 @@ class ProjectFileManager:
                 if item.name in exclude_items:
                     continue
                 
-                dest = target_path / item.name
+                # Rename 'src' folder to 'core' during copy
+                if item.name == 'src' and item.is_dir():
+                    dest = target_path / 'core'
+                else:
+                    dest = target_path / item.name
                 
                 if item.is_dir():
                     shutil.copytree(item, dest, ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
@@ -36,6 +40,14 @@ class ProjectFileManager:
                 else:
                     shutil.copy2(item, dest)
                     file_count += 1
+            
+            # Copy icon to bin folder if specified
+            if icon_path and icon_path.exists():
+                bin_dir = target_path / "bin"
+                bin_dir.mkdir(exist_ok=True)
+                icon_dest = bin_dir / "icon.png"
+                shutil.copy2(icon_path, icon_dest)
+                file_count += 1
             
             self.printer.progress_done(f"Copied {file_count} project files")
             return file_count

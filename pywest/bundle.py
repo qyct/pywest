@@ -85,8 +85,11 @@ class ProjectBundler:
             # Setup Python environment
             self._setup_python_environment(bundle_dir, dependencies)
             
-            # Copy project files
-            self.file_manager.copy_project_files(project_path, bundle_dir, exclude_pyproject=True)
+            # Copy project files (including icon if available)
+            icon_path = project_config.get_icon_path()
+            self.file_manager.copy_project_files(
+                project_path, bundle_dir, exclude_pyproject=True, icon_path=icon_path
+            )
             
             # Create scripts
             self._create_bundle_scripts(bundle_dir, project_config, project_path.name)
