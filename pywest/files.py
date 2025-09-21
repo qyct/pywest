@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from .log import StylePrinter
+from .ui import StylePrinter
 from .const import PyWestConstants, Colors
 
 
@@ -128,4 +128,4 @@ class BundleDirectoryManager:
             try:
                 shutil.rmtree(bundle_dir)
             except Exception:
-                pass  # Best effort cleanup
+                pass

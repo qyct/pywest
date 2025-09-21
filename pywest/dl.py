@@ -4,7 +4,7 @@ import urllib.request
 import zipfile
 import shutil
 from pathlib import Path
-from .log import StylePrinter
+from .ui import StylePrinter
 from .const import PyWestConstants
 
 
@@ -37,7 +37,6 @@ class PythonDownloader:
         
         self.printer.progress(f"Downloading Python {python_version} embeddable...")
         
-        # Suppress urllib output
         old_stderr = sys.stderr
         sys.stderr = open(os.devnull, 'w')
         
@@ -60,7 +59,6 @@ class PythonDownloader:
             with zipfile.ZipFile(cached_path, 'r') as zip_ref:
                 zip_ref.extractall(target_dir)
             
-            # Ensure pythonw.exe exists - copy from python.exe if missing
             python_exe = target_dir / "python.exe"
             pythonw_exe = target_dir / "pythonw.exe"
             
@@ -107,4 +105,4 @@ class GetPipDownloader:
             if Path(get_pip_path).exists():
                 Path(get_pip_path).unlink()
         except Exception:
-            pass  # Ignore cleanup errors
+            pass

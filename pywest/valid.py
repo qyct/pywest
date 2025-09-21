@@ -3,16 +3,12 @@ import platform
 import sys
 import urllib.request
 import socket
-import shutil
 from pathlib import Path
 from .const import PyWestConstants
 
 
 class ProjectValidator:
     """Validate project directory and structure"""
-    
-    def __init__(self):
-        pass
     
     def validate_project_directory(self, project_path):
         """Validate project directory exists and is accessible"""
@@ -24,7 +20,6 @@ class ProjectValidator:
         if not project_path.is_dir():
             raise NotADirectoryError(f"'{project_path}' is not a directory")
         
-        # Check read permissions
         if not os.access(project_path, os.R_OK):
             raise PermissionError(f"No read permission for project directory: {project_path}")
         
@@ -34,18 +29,13 @@ class ProjectValidator:
 class BundleValidator:
     """Validate bundle configuration and requirements"""
     
-    def __init__(self):
-        pass
-    
     def validate_bundle_requirements(self, bundle_config):
         """Validate bundle creation requirements"""
         errors = []
         
-        # Validate Python version
         if bundle_config.python_version not in PyWestConstants.SUPPORTED_PYTHON_VERSIONS:
             errors.append(f"Unsupported Python version: {bundle_config.python_version}")
         
-        # Validate compression level
         if not (0 <= bundle_config.compression_level <= 9):
             errors.append(f"Compression level must be between 0-9, got: {bundle_config.compression_level}")
         
@@ -74,7 +64,6 @@ class BundleValidator:
         if not bundle_name or not bundle_name.strip():
             raise ValueError("Bundle name cannot be empty")
         
-        # Check for invalid Windows filename characters
         invalid_chars = '<>:"/\\|?*'
         if any(char in bundle_name for char in invalid_chars):
             raise ValueError(f"Bundle name contains invalid characters: {invalid_chars}")
@@ -85,14 +74,10 @@ class BundleValidator:
 class SystemValidator:
     """Validate system requirements and environment"""
     
-    def __init__(self):
-        pass
-    
     def validate_windows_environment(self):
         """Validate running on Windows (required for this tool)"""
         if platform.system() != 'Windows':
             return False, "PyWest is designed for Windows only"
-        
         return True, None
     
     def validate_python_version(self):
@@ -107,7 +92,6 @@ class SystemValidator:
     def validate_internet_connection(self):
         """Validate internet connection for downloading Python"""
         try:
-            # Try to reach Python.org with a short timeout
             urllib.request.urlretrieve('https://www.python.org', timeout=5)
             return True, None
         except (urllib.error.URLError, socket.timeout):

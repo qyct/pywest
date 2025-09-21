@@ -39,7 +39,7 @@ class PyWestConstants:
     EXCLUDE_PATTERNS = {'.git', '__pycache__', '.pytest_cache', 'dist', 'build', '.venv', 'venv'}
     MAIN_FILE_CANDIDATES = ['main.py', '__main__.py']
     
-    # Required dependencies for installer (added Pillow for icon conversion)
+    # Required dependencies for installer
     REQUIRED_INSTALLER_DEPS = ["dearpygui", "pywin32", "Pillow"]
     
     # Cache directory

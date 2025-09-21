@@ -1,7 +1,7 @@
 import os
 import subprocess
 from pathlib import Path
-from .log import StylePrinter
+from .ui import StylePrinter
 from .dl import GetPipDownloader
 from .const import PyWestConstants
 
@@ -12,7 +12,7 @@ class PythonEnvironment:
     def __init__(self, python_dir):
         self.python_dir = Path(python_dir)
         self.python_exe = self.python_dir / "python.exe"
-        self.pythonw_exe = self.python_dir / "pythonw.exe"  # Add pythonw.exe support
+        self.pythonw_exe = self.python_dir / "pythonw.exe"
         self.printer = StylePrinter()
         self.pip_downloader = GetPipDownloader()
     
@@ -20,19 +20,13 @@ class PythonEnvironment:
         """Setup pip in embeddable Python"""
         self.printer.progress("Setting up pip...")
         
-        # Download get-pip.py
         get_pip_path = self.pip_downloader.download_get_pip(self.python_dir)
         
         try:
-            # Enable site-packages by uncommenting import site
             self._enable_site_packages()
-            
-            # Install pip
             self._install_pip(get_pip_path)
-            
             self.printer.progress_done("Pip configured")
         finally:
-            # Clean up get-pip.py
             self.pip_downloader.cleanup_get_pip(get_pip_path)
     
     def _enable_site_packages(self):
@@ -55,7 +49,6 @@ class PythonEnvironment:
     
     def _install_pip(self, get_pip_path):
         """Install pip using get-pip.py"""
-        # Use CREATE_NO_WINDOW to hide console
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         startupinfo.wShowWindow = subprocess.SW_HIDE
@@ -76,7 +69,6 @@ class PythonEnvironment:
         if quiet:
             cmd.append("--quiet")
         
-        # Use CREATE_NO_WINDOW to hide console
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         startupinfo.wShowWindow = subprocess.SW_HIDE
@@ -124,10 +116,8 @@ class DependencyInstaller:
         if project_dependencies:
             all_deps.extend(project_dependencies)
         
-        # Changed: Always say "Installing dependencies" without count
         self.printer.progress("Installing dependencies...")
         
-        # Install all dependencies
         for dep in all_deps:
             self.python_env.install_package(dep)
         

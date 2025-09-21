@@ -330,9 +330,6 @@ if __name__ == "__main__":
 class InstallerGUIGenerator:
     """Generate GUI installer scripts using DearPyGui"""
     
-    def __init__(self):
-        pass
-    
     def create_installer_script(self, bundle_dir, project_name):
         """Create bin.py GUI script in bin folder"""
         bin_dir = Path(bundle_dir) / "bin"
@@ -361,7 +358,6 @@ class InstallerValidator:
         if len(project_name.strip()) == 0:
             return False, "Project name cannot be whitespace only"
         
-        # Check for invalid Windows filename characters
         invalid_chars = '<>:"/\\|?*'
         if any(char in project_name for char in invalid_chars):
             return False, f"Project name contains invalid characters: {invalid_chars}"

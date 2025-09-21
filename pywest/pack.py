@@ -2,7 +2,7 @@ import zipfile
 import shutil
 import py7zr
 from pathlib import Path
-from .log import StylePrinter, HeaderPrinter
+from .ui import StylePrinter, HeaderPrinter
 from .comp import CompressionUtils, ArchiveValidator
 
 
@@ -18,7 +18,6 @@ class ZipArchiver:
         """Create ZIP archive from bundle directory"""
         archive_path = Path(output_path) / archive_name
         
-        # Validate archive creation
         validator = ArchiveValidator()
         is_valid, error_msg = validator.validate_zip_creation(archive_path, self.compression_level)
         if not is_valid:
@@ -38,7 +37,6 @@ class ZipArchiver:
             return archive_path
             
         except Exception as e:
-            # Clean up on failure
             if archive_path.exists():
                 archive_path.unlink()
             raise Exception(f"Failed to create ZIP archive: {str(e)}")
@@ -65,7 +63,6 @@ class SevenZipArchiver:
         """Create 7-Zip archive from bundle directory"""
         archive_path = Path(output_path) / archive_name
         
-        # Validate archive creation
         validator = ArchiveValidator()
         is_valid, error_msg = validator.validate_7zip_creation(archive_path, self.compression_level)
         if not is_valid:
@@ -85,7 +82,6 @@ class SevenZipArchiver:
             return archive_path
             
         except Exception as e:
-            # Clean up on failure
             if archive_path.exists():
                 archive_path.unlink()
             raise Exception(f"Failed to create 7Z archive: {str(e)}")
@@ -116,14 +112,9 @@ class ArchiveManager:
         
         try:
             archive_path = self.zip_archiver.create_zip_archive(bundle_dir, output_path, final_name)
-            
-            # Remove source bundle directory after successful archive creation
             shutil.rmtree(bundle_dir)
-            
             return archive_path
-            
         except Exception as e:
-            # Clean up bundle directory on failure
             if Path(bundle_dir).exists():
                 shutil.rmtree(bundle_dir)
             raise
@@ -135,14 +126,9 @@ class ArchiveManager:
         
         try:
             archive_path = self.seven_zip_archiver.create_7zip_archive(bundle_dir, output_path, final_name)
-            
-            # Remove source bundle directory after successful archive creation
             shutil.rmtree(bundle_dir)
-            
             return archive_path
-            
         except Exception as e:
-            # Clean up bundle directory on failure
             if Path(bundle_dir).exists():
                 shutil.rmtree(bundle_dir)
             raise

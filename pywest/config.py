@@ -1,6 +1,6 @@
 import tomllib
 from pathlib import Path
-from .log import StylePrinter
+from .ui import StylePrinter
 from .const import PyWestConstants
 
 

@@ -4,11 +4,10 @@ from .config import ProjectConfig, BundleConfig
 from .dl import PythonDownloader
 from .env import PythonEnvironment, DependencyInstaller
 from .files import ProjectFileManager, BundleDirectoryManager
-from .run import RunScriptGenerator
-from .setup import SetupScriptGenerator
+from .run import RunScriptGenerator, SetupScriptGenerator
 from .inst import InstallerGUIGenerator
 from .pack import ArchiveManager, ArchiveInfoProvider
-from .log import StylePrinter, HeaderPrinter
+from .ui import StylePrinter, HeaderPrinter
 from .valid import ProjectValidator, BundleValidator
 
 

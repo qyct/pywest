@@ -1,8 +1,8 @@
 import sys
 import argparse
 from pathlib import Path
-from .log import StylePrinter
-from .bundle import ProjectBundler
+from .ui import StylePrinter
+from .core import ProjectBundler
 
 
 class PyWestCLI:
