@@ -106,7 +106,7 @@ class Installer:
     def add_to_add_remove_programs(self, install_path):
         """Add to Add/Remove Programs"""
         try:
-            key_path = r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + self.app_name
+            key_path = r"SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\" + self.app_name
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
                 winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, self.app_name)
                 winreg.SetValueEx(key, "UninstallString", 0, winreg.REG_SZ, 
@@ -131,11 +131,11 @@ class Installer:
             'cd /d "%~dp0"',
             "",
             ":: Remove shortcuts",
-            f'del "%USERPROFILE%\\Desktop\\{self.app_name}.lnk" 2>nul',
-            f'del "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\{self.app_name}.lnk" 2>nul',
+            f'del "%USERPROFILE%\\\\Desktop\\\\{self.app_name}.lnk" 2>nul',
+            f'del "%APPDATA%\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\{self.app_name}.lnk" 2>nul',
             "",
             ":: Remove from Add/Remove Programs",
-            f'reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{self.app_name}" /f 2>nul',
+            f'reg delete "HKCU\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\{self.app_name}" /f 2>nul',
             "",
             ":: Remove installation directory",
             "cd ..",
