@@ -84,13 +84,13 @@ class ProjectBundler:
             # Setup Python environment
             self._setup_python_environment(bundle_dir, dependencies)
             
-            # Copy project files (including icon if available)
+            # Copy project files (excluding icon since it's handled separately)
             icon_path = project_config.get_icon_path()
             self.file_manager.copy_project_files(
                 project_path, bundle_dir, exclude_pyproject=True, icon_path=icon_path
             )
             
-            # Create scripts
+            # Create scripts and handle icon conversion
             self._create_bundle_scripts(bundle_dir, project_config, project_path.name)
             
             # Print completion info
@@ -125,6 +125,9 @@ class ProjectBundler:
     
     def _create_bundle_scripts(self, bundle_dir, project_config, project_name):
         """Create all bundle scripts"""
+        # Convert and copy icon to bin folder
+        project_config.convert_and_copy_icon(bundle_dir)
+        
         # Create run script
         self.printer.progress("Generating launcher...")
         entry_name, entry_point = project_config.get_entry_point()

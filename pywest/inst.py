@@ -31,19 +31,9 @@ class Installer:
         self.create_startmenu_shortcut_value = True
         self.add_to_programs_value = True
         self.installing = False
-        # Find icon file in core directory (could be any .png file)
-        self.icon_path = self._find_icon_file()
+        # Icon is expected to be in bin/icon.ico
+        self.icon_path = Path(__file__).parent / "icon.ico"
         
-    def _find_icon_file(self):
-        """Find the icon PNG file in the core directory"""
-        core_dir = self.bundle_dir / "core"
-        if not core_dir.exists():
-            return None
-        
-        # Look for any PNG file in the core directory (likely the project icon)
-        png_files = list(core_dir.glob("*.png"))
-        return png_files[0] if png_files else None
-    
     def browse_folder(self):
         """Browse for installation folder using Windows shell dialog"""
         # Initialize COM (important for GUI apps like DearPyGui)
@@ -62,69 +52,61 @@ class Installer:
             pythoncom.CoUninitialize()  # cleanup
     
     def create_desktop_shortcut_func(self, install_path):
-        """Create desktop shortcut"""
+        """Create desktop shortcut with icon"""
         try:
-            import win32com.client
+            # Initialize COM for this thread
+            pythoncom.CoInitialize()
+            
             shell = win32com.client.Dispatch("WScript.Shell")
             desktop = shell.SpecialFolders("Desktop")
             shortcut = shell.CreateShortCut(os.path.join(desktop, f"{self.app_name}.lnk"))
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             
-            # Use icon from core folder if available, otherwise python.exe
-            icon_path = install_path / "core"
-            icon_files = list(icon_path.glob("*.png")) if icon_path.exists() else []
-            if icon_files:
-                # Convert PNG to ICO temporarily for shortcut
-                try:
-                    png_path = icon_files[0]  # Use first PNG found
-                    ico_path = png_path.with_suffix('.ico')
-                    img = Image.open(png_path)
-                    img.save(ico_path, format='ICO', sizes=[(16,16), (32,32), (48,48)])
-                    shortcut.IconLocation = str(ico_path)
-                except:
-                    shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+            # Use icon.ico from bin folder if it exists
+            icon_path = install_path / "bin" / "icon.ico"
+            if icon_path.exists():
+                shortcut.IconLocation = str(icon_path) + ",0"
             else:
-                shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+                shortcut.IconLocation = str(install_path / "bin" / "python.exe") + ",0"
                 
             shortcut.save()
-        except:
-            pass
+            
+        except Exception as e:
+            print(f"Failed to create desktop shortcut: {e}")
+        finally:
+            pythoncom.CoUninitialize()
     
     def create_startmenu_shortcut_func(self, install_path):
-        """Create start menu shortcut"""
+        """Create start menu shortcut with icon"""
         try:
-            import win32com.client
+            # Initialize COM for this thread
+            pythoncom.CoInitialize()
+            
             shell = win32com.client.Dispatch("WScript.Shell")
             programs = shell.SpecialFolders("Programs")
             shortcut = shell.CreateShortCut(os.path.join(programs, f"{self.app_name}.lnk"))
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             
-            # Use icon from core folder if available, otherwise python.exe
-            icon_path = install_path / "core"
-            icon_files = list(icon_path.glob("*.png")) if icon_path.exists() else []
-            if icon_files:
-                # Convert PNG to ICO temporarily for shortcut
-                try:
-                    png_path = icon_files[0]  # Use first PNG found
-                    ico_path = png_path.with_suffix('.ico')
-                    img = Image.open(png_path)
-                    img.save(ico_path, format='ICO', sizes=[(16,16), (32,32), (48,48)])
-                    shortcut.IconLocation = str(ico_path)
-                except:
-                    shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+            # Use icon.ico from bin folder if it exists
+            icon_path = install_path / "bin" / "icon.ico"
+            if icon_path.exists():
+                shortcut.IconLocation = str(icon_path) + ",0"
             else:
-                shortcut.IconLocation = str(install_path / "bin" / "python.exe")
+                shortcut.IconLocation = str(install_path / "bin" / "python.exe") + ",0"
                 
             shortcut.save()
-        except:
-            pass
+            
+        except Exception as e:
+            print(f"Failed to create start menu shortcut: {e}")
+        finally:
+            pythoncom.CoUninitialize()
     
     def add_to_add_remove_programs(self, install_path):
         """Add to Add/Remove Programs"""
         try:
-            key_path = r"SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\" + self.app_name
+            key_path = r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + self.app_name
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
                 winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, self.app_name)
                 winreg.SetValueEx(key, "UninstallString", 0, winreg.REG_SZ, 
@@ -132,8 +114,14 @@ class Installer:
                 winreg.SetValueEx(key, "InstallLocation", 0, winreg.REG_SZ, str(install_path))
                 winreg.SetValueEx(key, "Publisher", 0, winreg.REG_SZ, "PyWest Bundle")
                 winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, "1.0.0")
-        except:
-            pass
+                
+                # Add icon to Add/Remove Programs if available
+                icon_path = install_path / "bin" / "icon.ico"
+                if icon_path.exists():
+                    winreg.SetValueEx(key, "DisplayIcon", 0, winreg.REG_SZ, str(icon_path))
+                
+        except Exception as e:
+            print(f"Failed to add to Add/Remove Programs: {e}")
     
     def create_uninstaller(self, install_path):
         """Create uninstaller script"""
@@ -143,11 +131,11 @@ class Installer:
             'cd /d "%~dp0"',
             "",
             ":: Remove shortcuts",
-            f'del "%USERPROFILE%\\\\Desktop\\\\{self.app_name}.lnk" 2>nul',
-            f'del "%APPDATA%\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\{self.app_name}.lnk" 2>nul',
+            f'del "%USERPROFILE%\\Desktop\\{self.app_name}.lnk" 2>nul',
+            f'del "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\{self.app_name}.lnk" 2>nul',
             "",
             ":: Remove from Add/Remove Programs",
-            f'reg delete "HKCU\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\{self.app_name}" /f 2>nul',
+            f'reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{self.app_name}" /f 2>nul',
             "",
             ":: Remove installation directory",
             "cd ..",
@@ -159,8 +147,11 @@ class Installer:
         
         uninstall_content = "\\n".join(uninstall_lines)
         
-        with open(install_path / "uninstall.bat", 'w') as f:
-            f.write(uninstall_content)
+        try:
+            with open(install_path / "uninstall.bat", 'w') as f:
+                f.write(uninstall_content)
+        except Exception as e:
+            print(f"Failed to create uninstaller: {e}")
     
     def install_files(self):
         """Install files with progress updates"""
@@ -252,17 +243,11 @@ class Installer:
     def load_icon(self):
         """Load icon for viewport"""
         try:
-            if not self.icon_path or not self.icon_path.exists():
+            if not self.icon_path.exists():
                 return None
                 
-            with Image.open(self.icon_path) as img:
-                # For viewport icon, use 16x16 or 32x32
-                img = img.resize((32, 32), Image.Resampling.LANCZOS).convert('RGBA')
-                
-                # Save as temporary file for viewport icon
-                temp_icon_path = Path(__file__).parent / "temp_icon.ico"
-                img.save(temp_icon_path, format='ICO', sizes=[(16,16), (32,32)])
-                return str(temp_icon_path)
+            # Use the ICO file directly for viewport
+            return str(self.icon_path)
         except:
             return None
     

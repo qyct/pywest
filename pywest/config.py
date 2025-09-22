@@ -1,5 +1,6 @@
 import tomllib
 from pathlib import Path
+from PIL import Image
 from .ui import StylePrinter
 from .const import PyWestConstants
 
@@ -72,22 +73,64 @@ class ProjectConfig:
         return self.project_path.name
     
     def get_icon_path(self):
-        """Get icon path from pyproject.toml"""
+        """Get icon path from pyproject.toml, supporting common image formats"""
         if not self.config_data:
             return None
             
         try:
             icon_filename = self.config_data['project'].get('icon')
-            if icon_filename and icon_filename.endswith('.png'):
-                icon_path = self.project_path / icon_filename
-                if icon_path.exists():
-                    return icon_path
+            if icon_filename:
+                # Support common image formats
+                supported_formats = {'.png', '.ico', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff'}
+                icon_ext = Path(icon_filename).suffix.lower()
+                
+                if icon_ext in supported_formats:
+                    icon_path = self.project_path / icon_filename
+                    if icon_path.exists():
+                        return icon_path
+                    else:
+                        self.printer.warning(f"Icon file specified in pyproject.toml not found: {icon_filename}")
                 else:
-                    self.printer.warning(f"Icon file specified in pyproject.toml not found: {icon_filename}")
+                    self.printer.warning(f"Unsupported icon format: {icon_ext}. Supported formats: {', '.join(supported_formats)}")
         except (KeyError, TypeError):
             pass
         
         return None
+    
+    def convert_and_copy_icon(self, bundle_dir):
+        """Convert icon to ICO format and copy to bin folder"""
+        icon_path = self.get_icon_path()
+        if not icon_path:
+            return None
+        
+        bin_dir = Path(bundle_dir) / "bin"
+        bin_dir.mkdir(exist_ok=True)
+        
+        ico_path = bin_dir / "icon.ico"
+        
+        try:
+            with Image.open(icon_path) as img:
+                # Convert to RGBA if not already
+                if img.mode != 'RGBA':
+                    img = img.convert('RGBA')
+                
+                # Create multiple sizes for better ICO support
+                sizes = [(16, 16), (32, 32), (48, 48), (64, 64), (128, 128)]
+                
+                if icon_path.suffix.lower() == '.ico':
+                    # If already ICO, just copy it
+                    import shutil
+                    shutil.copy2(icon_path, ico_path)
+                else:
+                    # Convert to ICO with multiple sizes
+                    img.save(ico_path, format='ICO', sizes=sizes)
+                
+                self.printer.dim(f"Icon converted and copied to bin/icon.ico")
+                return ico_path
+                
+        except Exception as e:
+            self.printer.warning(f"Failed to convert icon: {str(e)}")
+            return None
 
 
 class BundleConfig:

@@ -21,7 +21,7 @@ class ProjectFileManager:
         if exclude_pyproject:
             exclude_items.add('pyproject.toml')
         
-        # Exclude the icon file from main copy to avoid duplication
+        # Exclude the icon file from main copy since it's handled separately
         if icon_path and icon_path.exists():
             exclude_items.add(icon_path.name)
         
@@ -54,13 +54,6 @@ class ProjectFileManager:
             # Ensure core directory exists
             core_dir = target_path / "core"
             core_dir.mkdir(exist_ok=True)
-            
-            # Copy icon to core folder if specified, preserving original filename
-            if icon_path and icon_path.exists():
-                icon_dest = core_dir / icon_path.name
-                shutil.copy2(icon_path, icon_dest)
-                file_count += 1
-                self.printer.dim(f"Icon copied: {icon_path.name}")
             
             self.printer.progress_done(f"Copied {file_count} project files")
             return file_count
