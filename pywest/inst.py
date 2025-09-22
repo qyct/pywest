@@ -1,4 +1,6 @@
 from pathlib import Path
+import win32com.client
+import pythoncom
 
 
 SETUP_PY_CONTENT = '''"""
@@ -15,6 +17,8 @@ import sys
 from pathlib import Path
 from PIL import Image
 import tempfile
+import win32com.client
+import pythoncom
 
 
 class Installer:
@@ -41,14 +45,21 @@ class Installer:
         return png_files[0] if png_files else None
     
     def browse_folder(self):
-        """Browse for installation folder"""
-        dpg.show_item("file_dialog")
-    
-    def folder_selected(self, sender, app_data):
-        """Handle folder selection"""
-        if app_data and app_data.get('file_path_name'):
-            self.install_path = app_data['file_path_name']
-            dpg.set_value("install_path", self.install_path)
+        """Browse for installation folder using Windows shell dialog"""
+        # Initialize COM (important for GUI apps like DearPyGui)
+        pythoncom.CoInitialize()
+        
+        try:
+            shell = win32com.client.Dispatch("Shell.Application")
+            folder = shell.BrowseForFolder(0, "Select installation folder", 0, 0)
+            if folder:
+                path = folder.Self.Path
+                # Append app name to the selected path
+                full_path = str(Path(path) / self.app_name)
+                dpg.set_value("install_path", full_path)
+                self.install_path = full_path
+        finally:
+            pythoncom.CoUninitialize()  # cleanup
     
     def create_desktop_shortcut_func(self, install_path):
         """Create desktop shortcut"""
@@ -209,8 +220,8 @@ class Installer:
         finally:
             self.installing = False
     
-    def start_installation(self):
-        """Start the installation process"""
+    def install_clicked(self):
+        """Handle install button click"""
         if self.installing:
             dpg.destroy_context()
             return
@@ -219,6 +230,7 @@ class Installer:
             dpg.destroy_context()
             return
             
+        # Get values from GUI
         self.install_path = dpg.get_value("install_path")
         self.create_desktop_shortcut_value = dpg.get_value("desktop_shortcut")
         self.create_startmenu_shortcut_value = dpg.get_value("startmenu_shortcut") 
@@ -233,115 +245,79 @@ class Installer:
         thread.daemon = True
         thread.start()
     
-    def load_icon_texture(self):
-        """Load icon as texture for display in GUI"""
-        if not self.icon_path.exists():
-            return None
-            
+    def cancel_clicked(self):
+        """Handle cancel button click"""
+        dpg.destroy_context()
+    
+    def load_icon(self):
+        """Load icon for viewport"""
         try:
-            # Load and resize icon for GUI display
+            if not self.icon_path or not self.icon_path.exists():
+                return None
+                
             with Image.open(self.icon_path) as img:
-                # Resize to 48x48 for display
-                img = img.resize((48, 48), Image.Resampling.LANCZOS)
-                img = img.convert('RGBA')
+                # For viewport icon, use 16x16 or 32x32
+                img = img.resize((32, 32), Image.Resampling.LANCZOS).convert('RGBA')
                 
-                # Convert to format DearPyGui expects
-                width, height = img.size
-                img_data = list(img.getdata())
-                
-                # Convert RGBA tuples to flat list of floats (0-1 range)
-                flat_data = []
-                for pixel in img_data:
-                    flat_data.extend([pixel[0]/255.0, pixel[1]/255.0, pixel[2]/255.0, pixel[3]/255.0])
-                
-                return dpg.add_raw_texture(width, height, flat_data, format=dpg.mvFormat_Float_rgba)
-        except Exception as e:
-            print(f"Could not load icon: {e}")
+                # Save as temporary file for viewport icon
+                temp_icon_path = Path(__file__).parent / "temp_icon.ico"
+                img.save(temp_icon_path, format='ICO', sizes=[(16,16), (32,32)])
+                return str(temp_icon_path)
+        except:
             return None
     
     def run(self):
         """Run the installer GUI"""
         dpg.create_context()
         
-        # Load icon texture
-        icon_texture = self.load_icon_texture()
+        # Load icon for titlebar
+        icon_path = self.load_icon()
         
-        # Set default theme to Windows-like gray
-        with dpg.theme() as global_theme:
-            with dpg.theme_component(dpg.mvAll):
-                dpg.add_theme_color(dpg.mvThemeCol_WindowBg, (240, 240, 240))
-                dpg.add_theme_color(dpg.mvThemeCol_ChildBg, (240, 240, 240))
-                dpg.add_theme_color(dpg.mvThemeCol_PopupBg, (240, 240, 240))
-                dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (255, 255, 255))
-                dpg.add_theme_color(dpg.mvThemeCol_Text, (0, 0, 0))
-                dpg.add_theme_color(dpg.mvThemeCol_CheckMark, (0, 120, 215))
-                dpg.add_theme_color(dpg.mvThemeCol_Button, (225, 225, 225))
-                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (229, 241, 251))
-                dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (204, 228, 247))
-        
-        dpg.bind_theme(global_theme)
-        
-        # File dialog for folder selection
-        with dpg.file_dialog(directory_selector=True, show=False, 
-                           callback=self.folder_selected, tag="file_dialog",
-                           width=700, height=400):
-            dpg.add_file_extension("", color=(255, 255, 255, 255))
-        
-        # Adjust window size based on whether we have an icon
-        window_height = 340 if icon_texture else 300
-        
-        with dpg.window(tag="main_window", label="", 
-                       width=280, height=window_height, no_resize=True, no_collapse=True,
-                       no_title_bar=True):
+        # Main window - similar to binr.py design
+        with dpg.window(tag="main_window", width=400, height=280, 
+                       no_resize=True, no_collapse=True, no_title_bar=True):
             
-            # Icon and title header
-            if icon_texture:
-                with dpg.group(horizontal=True):
-                    dpg.add_image(icon_texture)
-                    dpg.add_spacer(width=10)
-                    with dpg.group():
-                        dpg.add_spacer(height=10)
-                        dpg.add_text(f"{self.app_name} Installer", color=(0, 0, 0))
-                        dpg.add_text("Setup Wizard", color=(100, 100, 100))
-                dpg.add_spacer(height=5)
-            else:
-                dpg.add_text(f"{self.app_name} Installer", color=(0, 0, 0))
-                dpg.add_spacer(height=5)
-            
-            dpg.add_separator()
-            
-            # Installation path group
-            dpg.add_text("Install Location:", color=(0, 0, 0))
+            # Add left margin by creating a horizontal group with spacer
             with dpg.group(horizontal=True):
-                dpg.add_input_text(tag="install_path", default_value=self.install_path, width=180)
-                dpg.add_button(label="...", callback=self.browse_folder, width=25)
-            
-            dpg.add_separator()
-            
-            # Checkboxes
-            dpg.add_checkbox(tag="desktop_shortcut", label="Desktop shortcut", 
-                           default_value=self.create_desktop_shortcut_value)
-            dpg.add_checkbox(tag="startmenu_shortcut", label="Start menu shortcut",
-                           default_value=self.create_startmenu_shortcut_value) 
-            dpg.add_checkbox(tag="add_remove_programs", label="Add to Programs list",
-                           default_value=self.add_to_programs_value)
-            
-            dpg.add_separator()
-            
-            # Progress
-            dpg.add_text("Ready to install", tag="status_text", color=(0, 0, 0))
-            dpg.add_progress_bar(tag="progress_bar", default_value=0.0, width=-1)
-            
-            dpg.add_separator()
-            
-            # Install button
-            dpg.add_button(tag="install_button", label="Install", 
-                         callback=self.start_installation, width=-1, height=30)
+                dpg.add_spacer(width=10)  # Left margin for entire content
+                with dpg.group():
+                    # Install location
+                    dpg.add_spacer(height=10)
+                    with dpg.group(horizontal=True):
+                        dpg.add_input_text(tag="install_path", default_value=self.install_path, width=220)
+                        dpg.add_button(label="Browse", callback=self.browse_folder, width=60)
+                    
+                    dpg.add_spacer(height=5)
+                    dpg.add_checkbox(tag="desktop_shortcut", label="Create desktop shortcut", 
+                                   default_value=self.create_desktop_shortcut_value)
+                    dpg.add_checkbox(tag="startmenu_shortcut", label="Create start menu shortcut",
+                                   default_value=self.create_startmenu_shortcut_value)
+                    dpg.add_checkbox(tag="add_remove_programs", label="Add to Add/Remove Programs", 
+                                   default_value=self.add_to_programs_value)
+                    
+                    dpg.add_spacer(height=5)
+                    
+                    # Progress section
+                    dpg.add_text("Ready to install", tag="status_text")
+                    dpg.add_progress_bar(tag="progress_bar", default_value=0.0, width=280)
+                    
+                    dpg.add_spacer(height=5)
+                    
+                    # Buttons at bottom
+                    with dpg.group(horizontal=True):
+                        dpg.add_spacer(width=60)
+                        dpg.add_button(tag="install_button", label="Install", 
+                                     callback=self.install_clicked, width=80, height=30)
+                        dpg.add_spacer(width=20)
+                        dpg.add_button(label="Cancel", callback=self.cancel_clicked, width=80, height=30)
         
-        # Adjust viewport size based on window content
-        viewport_height = window_height + 20
-        dpg.create_viewport(title=f"{self.app_name} Setup", width=300, height=viewport_height,
-                          resizable=False)
+        # Create viewport with icon if available
+        if icon_path:
+            dpg.create_viewport(title="Setup", width=400, height=280, resizable=False, 
+                              small_icon=icon_path, large_icon=icon_path)
+        else:
+            dpg.create_viewport(title="Setup", width=400, height=280, resizable=False)
+        
         dpg.setup_dearpygui()
         dpg.show_viewport()
         dpg.set_primary_window("main_window", True)
