@@ -77,11 +77,13 @@ class ProjectConfig:
             return None
             
         try:
-            icon = self.config_data['project'].get('icon')
-            if icon and icon.endswith('.png'):
-                icon_path = self.project_path / icon
+            icon_filename = self.config_data['project'].get('icon')
+            if icon_filename and icon_filename.endswith('.png'):
+                icon_path = self.project_path / icon_filename
                 if icon_path.exists():
                     return icon_path
+                else:
+                    self.printer.warning(f"Icon file specified in pyproject.toml not found: {icon_filename}")
         except (KeyError, TypeError):
             pass
         

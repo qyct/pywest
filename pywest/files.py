@@ -21,6 +21,10 @@ class ProjectFileManager:
         if exclude_pyproject:
             exclude_items.add('pyproject.toml')
         
+        # Exclude the icon file from main copy to avoid duplication
+        if icon_path and icon_path.exists():
+            exclude_items.add(icon_path.name)
+        
         file_count = 0
         
         try:
@@ -31,23 +35,29 @@ class ProjectFileManager:
                 # Rename 'src' folder to 'core' during copy
                 if item.name == 'src' and item.is_dir():
                     dest = target_path / 'core'
+                    # Copy src folder with icon exclusion if icon is inside src
+                    if icon_path and icon_path.exists() and icon_path.is_relative_to(item):
+                        # Custom copy for src folder to exclude icon
+                        self._copy_directory_excluding_file(item, dest, icon_path)
+                    else:
+                        shutil.copytree(item, dest, ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
+                    file_count += len(list(item.rglob('*'))) - (1 if icon_path and icon_path.is_relative_to(item) else 0)
                 else:
                     dest = target_path / item.name
-                
-                if item.is_dir():
-                    shutil.copytree(item, dest, ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
-                    file_count += len(list(item.rglob('*')))
-                else:
-                    shutil.copy2(item, dest)
-                    file_count += 1
+                    if item.is_dir():
+                        shutil.copytree(item, dest, ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
+                        file_count += len(list(item.rglob('*')))
+                    else:
+                        shutil.copy2(item, dest)
+                        file_count += 1
             
             # Ensure core directory exists
             core_dir = target_path / "core"
             core_dir.mkdir(exist_ok=True)
             
-            # Copy icon to core folder if specified
+            # Copy icon to core folder if specified, preserving original filename
             if icon_path and icon_path.exists():
-                icon_dest = core_dir / "icon.png"
+                icon_dest = core_dir / icon_path.name
                 shutil.copy2(icon_path, icon_dest)
                 file_count += 1
                 self.printer.dim(f"Icon copied: {icon_path.name}")
@@ -57,6 +67,23 @@ class ProjectFileManager:
             
         except Exception as e:
             raise Exception(f"Failed to copy project files: {str(e)}")
+    
+    def _copy_directory_excluding_file(self, src_dir, dest_dir, exclude_file):
+        """Copy directory contents excluding a specific file"""
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        
+        for item in src_dir.rglob('*'):
+            if item == exclude_file:
+                continue
+            
+            rel_path = item.relative_to(src_dir)
+            dest_item = dest_dir / rel_path
+            
+            if item.is_dir():
+                dest_item.mkdir(parents=True, exist_ok=True)
+            else:
+                dest_item.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, dest_item)
     
     def find_main_file(self, project_path, project_name):
         """Find the main Python file to run"""

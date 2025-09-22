@@ -27,8 +27,19 @@ class Installer:
         self.create_startmenu_shortcut_value = True
         self.add_to_programs_value = True
         self.installing = False
-        self.icon_path = self.bundle_dir / "core" / "icon.png"
+        # Find icon file in core directory (could be any .png file)
+        self.icon_path = self._find_icon_file()
         
+    def _find_icon_file(self):
+        """Find the icon PNG file in the core directory"""
+        core_dir = self.bundle_dir / "core"
+        if not core_dir.exists():
+            return None
+        
+        # Look for any PNG file in the core directory (likely the project icon)
+        png_files = list(core_dir.glob("*.png"))
+        return png_files[0] if png_files else None
+    
     def browse_folder(self):
         """Browse for installation folder"""
         dpg.show_item("file_dialog")
@@ -49,13 +60,15 @@ class Installer:
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             
-            # Use icon.png from core folder if available, otherwise python.exe
-            icon_path = install_path / "core" / "icon.png"
-            if icon_path.exists():
+            # Use icon from core folder if available, otherwise python.exe
+            icon_path = install_path / "core"
+            icon_files = list(icon_path.glob("*.png")) if icon_path.exists() else []
+            if icon_files:
                 # Convert PNG to ICO temporarily for shortcut
                 try:
-                    ico_path = install_path / "core" / "icon.ico"
-                    img = Image.open(icon_path)
+                    png_path = icon_files[0]  # Use first PNG found
+                    ico_path = png_path.with_suffix('.ico')
+                    img = Image.open(png_path)
                     img.save(ico_path, format='ICO', sizes=[(16,16), (32,32), (48,48)])
                     shortcut.IconLocation = str(ico_path)
                 except:
@@ -77,13 +90,15 @@ class Installer:
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             
-            # Use icon.png from core folder if available, otherwise python.exe
-            icon_path = install_path / "core" / "icon.png"
-            if icon_path.exists():
+            # Use icon from core folder if available, otherwise python.exe
+            icon_path = install_path / "core"
+            icon_files = list(icon_path.glob("*.png")) if icon_path.exists() else []
+            if icon_files:
                 # Convert PNG to ICO temporarily for shortcut
                 try:
-                    ico_path = install_path / "core" / "icon.ico"
-                    img = Image.open(icon_path)
+                    png_path = icon_files[0]  # Use first PNG found
+                    ico_path = png_path.with_suffix('.ico')
+                    img = Image.open(png_path)
                     img.save(ico_path, format='ICO', sizes=[(16,16), (32,32), (48,48)])
                     shortcut.IconLocation = str(ico_path)
                 except:
