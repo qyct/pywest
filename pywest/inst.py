@@ -78,14 +78,20 @@ class Installer:
             pythoncom.CoUninitialize()
     
     def create_startmenu_shortcut_func(self, install_path):
-        """Create start menu shortcut with icon"""
+        """Create start menu shortcut with icon in user's personal start menu"""
         try:
             # Initialize COM for this thread
             pythoncom.CoInitialize()
             
             shell = win32com.client.Dispatch("WScript.Shell")
-            programs = shell.SpecialFolders("Programs")
-            shortcut = shell.CreateShortCut(os.path.join(programs, f"{self.app_name}.lnk"))
+            # Use user's personal start menu instead of system-wide Programs
+            start_menu = shell.SpecialFolders("StartMenu")
+            programs_folder = os.path.join(start_menu, "Programs")
+            
+            # Ensure the Programs folder exists in user's start menu
+            os.makedirs(programs_folder, exist_ok=True)
+            
+            shortcut = shell.CreateShortCut(os.path.join(programs_folder, f"{self.app_name}.lnk"))
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             
@@ -124,24 +130,77 @@ class Installer:
             print(f"Failed to add to Add/Remove Programs: {e}")
     
     def create_uninstaller(self, install_path):
-        """Create uninstaller script"""
+        """Create uninstaller script with admin privilege escalation"""
         uninstall_lines = [
             "@echo off",
-            f"echo Uninstalling {self.app_name}...",
-            'cd /d "%~dp0"',
+            ":: Uninstaller for " + self.app_name,
             "",
-            ":: Remove shortcuts",
-            f'del "%USERPROFILE%\\\\Desktop\\\\{self.app_name}.lnk" 2>nul',
-            f'del "%APPDATA%\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\{self.app_name}.lnk" 2>nul',
+            ":: Check for admin privileges",
+            ">nul 2>&1 \"%SYSTEMROOT%\\\\system32\\\\cacls.exe\" \"%SYSTEMROOT%\\\\system32\\\\config\\\\system\"",
+            "",
+            ":: If error flag set, we do not have admin.",
+            "if '%errorlevel%' NEQ '0' (",
+            "    echo Requesting administrative privileges to uninstall " + self.app_name + "...",
+            "    goto UACPrompt",
+            ") else ( goto gotAdmin )",
+            "",
+            ":UACPrompt",
+            "    echo Set UAC = CreateObject^(\"Shell.Application\"^) > \"%temp%\\\\getadmin.vbs\"",
+            "    set params = %*:\"=\"",
+            "    echo UAC.ShellExecute \"cmd.exe\", \"/c \"\"%~s0\"\" %params%\", \"\", \"runas\", 1 >> \"%temp%\\\\getadmin.vbs\"",
+            "    \"%temp%\\\\getadmin.vbs\"",
+            "    del \"%temp%\\\\getadmin.vbs\"",
+            "    exit /B",
+            "",
+            ":gotAdmin",
+            "    pushd \"%CD%\"",
+            "    CD /D \"%~dp0\"",
+            "",
+            "echo Uninstalling " + self.app_name + "...",
+            "echo.",
+            "",
+            ":: Remove shortcuts (user-specific paths)",
+            "echo Removing shortcuts...",
+            "del \"%USERPROFILE%\\\\Desktop\\\\" + self.app_name + ".lnk\" 2>nul",
+            "del \"%APPDATA%\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\" + self.app_name + ".lnk\" 2>nul",
             "",
             ":: Remove from Add/Remove Programs",
-            f'reg delete "HKCU\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\{self.app_name}" /f 2>nul',
+            "echo Removing from Add/Remove Programs...",
+            "reg delete \"HKCU\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\" + self.app_name + "\" /f 2>nul",
             "",
-            ":: Remove installation directory",
-            "cd ..",
-            f'rmdir /s /q "{install_path.name}"',
+            ":: Change to parent directory before deleting",
+            "echo Removing application files...",
+            "cd /d \"" + str(install_path.parent) + "\"",
             "",
-            f"echo {self.app_name} has been uninstalled.",
+            ":: Force delete the installation directory with retry",
+            "set \"TARGET_DIR=" + install_path.name + "\"",
+            "",
+            ":: First attempt - normal deletion",
+            "rmdir /s /q \"%TARGET_DIR%\" 2>nul",
+            "",
+            ":: Check if directory still exists and force delete",
+            "if exist \"%TARGET_DIR%\" (",
+            "    echo Forcing removal of remaining files...",
+            "    :: Kill any processes that might be locking files",
+            "    taskkill /f /im python.exe 2>nul",
+            "    taskkill /f /im pythonw.exe 2>nul",
+            "    :: Wait a moment",
+            "    timeout /t 2 /nobreak >nul",
+            "    :: Try again with force",
+            "    rmdir /s /q \"%TARGET_DIR%\" 2>nul",
+            ")",
+            "",
+            ":: Final check",
+            "if exist \"%TARGET_DIR%\" (",
+            "    echo Warning: Some files could not be removed. They may be in use.",
+            "    echo Location: " + str(install_path),
+            "    echo You can manually delete this folder after closing any running applications.",
+            ") else (",
+            "    echo " + self.app_name + " has been successfully uninstalled.",
+            ")",
+            "",
+            "echo.",
+            "echo Uninstall process completed.",
             "pause"
         ]
         
@@ -320,12 +379,12 @@ class InstallerGUIGenerator:
     """Generate GUI installer scripts using DearPyGui"""
     
     def create_installer_script(self, bundle_dir, project_name):
-        """Create setup.py GUI script in bin folder"""  # Changed comment from bin.py to setup.py
+        """Create setup.py GUI script in bin folder"""
         bin_dir = Path(bundle_dir) / "bin"
         bin_dir.mkdir(exist_ok=True)
         
         installer_content = SETUP_PY_CONTENT.replace("PROJECT_NAME_PLACEHOLDER", project_name)
-        setup_path = bin_dir / "setup.py"  # Changed from bin.py to setup.py
+        setup_path = bin_dir / "setup.py"
         
         try:
             with open(setup_path, 'w', encoding='utf-8') as f:
