@@ -41,13 +41,16 @@ class ProjectFileManager:
                     shutil.copy2(item, dest)
                     file_count += 1
             
+            # Ensure core directory exists
+            core_dir = target_path / "core"
+            core_dir.mkdir(exist_ok=True)
+            
             # Copy icon to core folder if specified
             if icon_path and icon_path.exists():
-                core_dir = target_path / "core"
-                core_dir.mkdir(exist_ok=True)
                 icon_dest = core_dir / "icon.png"
                 shutil.copy2(icon_path, icon_dest)
                 file_count += 1
+                self.printer.dim(f"Icon copied: {icon_path.name}")
             
             self.printer.progress_done(f"Copied {file_count} project files")
             return file_count

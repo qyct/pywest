@@ -27,7 +27,7 @@ class Installer:
         self.create_startmenu_shortcut_value = True
         self.add_to_programs_value = True
         self.installing = False
-        self.icon_path = Path(__file__).parent.parent / "core" / "icon.png"
+        self.icon_path = self.bundle_dir / "core" / "icon.png"
         
     def browse_folder(self):
         """Browse for installation folder"""
@@ -49,13 +49,13 @@ class Installer:
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             
-            # Use icon.png if available, otherwise python.exe
-            if (install_path / "bin" / "icon.png").exists():
+            # Use icon.png from core folder if available, otherwise python.exe
+            icon_path = install_path / "core" / "icon.png"
+            if icon_path.exists():
                 # Convert PNG to ICO temporarily for shortcut
                 try:
-                    png_path = install_path / "bin" / "icon.png"
-                    ico_path = install_path / "bin" / "icon.ico"
-                    img = Image.open(png_path)
+                    ico_path = install_path / "core" / "icon.ico"
+                    img = Image.open(icon_path)
                     img.save(ico_path, format='ICO', sizes=[(16,16), (32,32), (48,48)])
                     shortcut.IconLocation = str(ico_path)
                 except:
@@ -77,13 +77,13 @@ class Installer:
             shortcut.Targetpath = str(install_path / "run.bat")
             shortcut.WorkingDirectory = str(install_path)
             
-            # Use icon.png if available, otherwise python.exe
-            if (install_path / "bin" / "icon.png").exists():
+            # Use icon.png from core folder if available, otherwise python.exe
+            icon_path = install_path / "core" / "icon.png"
+            if icon_path.exists():
                 # Convert PNG to ICO temporarily for shortcut
                 try:
-                    png_path = install_path / "bin" / "icon.png"
-                    ico_path = install_path / "bin" / "icon.ico"
-                    img = Image.open(png_path)
+                    ico_path = install_path / "core" / "icon.ico"
+                    img = Image.open(icon_path)
                     img.save(ico_path, format='ICO', sizes=[(16,16), (32,32), (48,48)])
                     shortcut.IconLocation = str(ico_path)
                 except:
@@ -272,15 +272,26 @@ class Installer:
                            width=700, height=400):
             dpg.add_file_extension("", color=(255, 255, 255, 255))
         
+        # Adjust window size based on whether we have an icon
+        window_height = 340 if icon_texture else 300
+        
         with dpg.window(tag="main_window", label="", 
-                       width=280, height=300, no_resize=True, no_collapse=True,
+                       width=280, height=window_height, no_resize=True, no_collapse=True,
                        no_title_bar=True):
             
-            # Icon header (without project name label)
+            # Icon and title header
             if icon_texture:
                 with dpg.group(horizontal=True):
                     dpg.add_image(icon_texture)
                     dpg.add_spacer(width=10)
+                    with dpg.group():
+                        dpg.add_spacer(height=10)
+                        dpg.add_text(f"{self.app_name} Installer", color=(0, 0, 0))
+                        dpg.add_text("Setup Wizard", color=(100, 100, 100))
+                dpg.add_spacer(height=5)
+            else:
+                dpg.add_text(f"{self.app_name} Installer", color=(0, 0, 0))
+                dpg.add_spacer(height=5)
             
             dpg.add_separator()
             
@@ -312,7 +323,9 @@ class Installer:
             dpg.add_button(tag="install_button", label="Install", 
                          callback=self.start_installation, width=-1, height=30)
         
-        dpg.create_viewport(title="Installer", width=300, height=320,
+        # Adjust viewport size based on window content
+        viewport_height = window_height + 20
+        dpg.create_viewport(title=f"{self.app_name} Setup", width=300, height=viewport_height,
                           resizable=False)
         dpg.setup_dearpygui()
         dpg.show_viewport()
