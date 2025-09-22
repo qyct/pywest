@@ -132,7 +132,11 @@ cd /d "%~dp0"
 set PYTHONPATH=%~dp0
 set PATH=%~dp0bin;%PATH%
 
-start "" /B bin\\pythonw.exe bin\\bin.py
+:: Launch the setup GUI - changed from bin.py to setup.py
+start "" /B bin\\pythonw.exe bin\\setup.py
+
+:: Don't exit immediately - let the GUI handle the process
+timeout /t 2 >nul
 
 exit
 '''

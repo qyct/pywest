@@ -320,12 +320,12 @@ class InstallerGUIGenerator:
     """Generate GUI installer scripts using DearPyGui"""
     
     def create_installer_script(self, bundle_dir, project_name):
-        """Create bin.py GUI script in bin folder"""
+        """Create setup.py GUI script in bin folder"""  # Changed comment from bin.py to setup.py
         bin_dir = Path(bundle_dir) / "bin"
         bin_dir.mkdir(exist_ok=True)
         
         installer_content = SETUP_PY_CONTENT.replace("PROJECT_NAME_PLACEHOLDER", project_name)
-        setup_path = bin_dir / "bin.py"
+        setup_path = bin_dir / "setup.py"  # Changed from bin.py to setup.py
         
         try:
             with open(setup_path, 'w', encoding='utf-8') as f:
