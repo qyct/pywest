@@ -35,4 +35,4 @@ dev = [
 ]
 
 [project.scripts]
-pywest = "pywest.cli:main"
+pywest = "pywest.wcli:main"
