@@ -2,16 +2,15 @@ import shutil
 from pathlib import Path
 from .config import ProjectConfig, BundleConfig
 from .dl import PythonDownloader
-from .env import PythonEnvironment, DependencyInstaller
-from .files import ProjectFileManager, BundleDirectoryManager
-from .run import RunScriptGenerator, SetupScriptGenerator
-from .pack import ArchiveManager, ArchiveInfoProvider
+from .env import PythonEnvironment
+from .files import ProjectFileManager, BundleDirectoryManager, ProjectValidator
+from .gen import RunScriptGenerator, SetupScriptGenerator
+from .pack import ArchiveManager
 from .ui import StylePrinter, HeaderPrinter
-from .valid import ProjectValidator, BundleValidator
 
 
 class ProjectBundler:
-    """Main project bundler class - simplified without GUI components"""
+    """Main project bundler class"""
     
     def __init__(self, python_version=None, compression_level=None):
         self.bundle_config = BundleConfig(python_version, compression_level)
@@ -44,8 +43,8 @@ class ProjectBundler:
                 return None
             
             # Create archive if requested
-            if bundle_type in ['zip', '7zip']:
-                return self._create_archive_from_bundle(bundle_path, bundle_type, bundle_name)
+            if bundle_type == 'zip':
+                return self._create_zip_archive(bundle_path, bundle_name)
             
             return bundle_path
             
@@ -79,14 +78,14 @@ class ProjectBundler:
             return None
         
         try:
-            # Setup Python environment (without GUI dependencies)
+            # Setup Python environment
             self._setup_python_environment(bundle_dir, dependencies)
             
             # Copy project files and pyproject.toml
             self._copy_project_and_config_files(project_path, project_config, bundle_dir)
             
-            # Create scripts and handle icon
-            self._create_bundle_scripts_and_assets(bundle_dir, project_config, project_path.name)
+            # Create scripts
+            self._create_bundle_scripts(bundle_dir, project_config, project_path.name)
             
             # Print completion info
             self.header_printer.print_completion_info(bundle_dir, "folder")
@@ -98,7 +97,7 @@ class ProjectBundler:
             raise Exception(f"Bundle creation failed: {str(e)}")
     
     def _setup_python_environment(self, bundle_dir, dependencies):
-        """Setup Python environment with only project dependencies"""
+        """Setup Python environment with project dependencies"""
         # Download and extract Python
         bin_dir = bundle_dir / "bin"
         self.python_downloader.download_and_extract(
@@ -111,21 +110,17 @@ class ProjectBundler:
         python_env = PythonEnvironment(bin_dir)
         python_env.setup_pip()
         
-        # Install only project dependencies (no GUI dependencies)
+        # Install project dependencies
         if dependencies:
-            dependency_installer = DependencyInstaller(python_env)
-            dependency_installer.install_project_dependencies(dependencies)
+            python_env.install_dependencies(dependencies)
         
         self.printer.progress("Setting up Python environment...")
         self.printer.progress_done("Python environment ready")
     
     def _copy_project_and_config_files(self, project_path, project_config, bundle_dir):
         """Copy project files and pyproject.toml to bundle"""
-        # Copy project files (excluding pyproject.toml for now)
-        icon_path = project_config.get_icon_path()
-        self.file_manager.copy_project_files(
-            project_path, bundle_dir, exclude_pyproject=True, icon_path=icon_path
-        )
+        # Copy project files
+        self.file_manager.copy_project_files(project_path, bundle_dir)
         
         # Copy pyproject.toml to bin folder if it exists
         pyproject_source = project_path / "pyproject.toml"
@@ -136,46 +131,46 @@ class ProjectBundler:
             shutil.copy2(pyproject_source, pyproject_dest)
             self.printer.dim("Copied pyproject.toml to bin folder")
     
-    def _create_bundle_scripts_and_assets(self, bundle_dir, project_config, project_name):
-        """Create all bundle scripts and assets"""
-        # Convert and copy icon to bin folder using Pillow
-        project_config.convert_and_copy_icon(bundle_dir)
-        
+    def _create_bundle_scripts(self, bundle_dir, project_config, project_name):
+        """Create all bundle scripts"""
         # Create run script
         self.printer.progress("Generating launcher...")
         entry_name, entry_point = project_config.get_entry_point()
         self.run_script_generator.create_run_script(bundle_dir, entry_name, entry_point, project_name)
         self.printer.progress_done("Launcher created")
         
-        # Create setup script (simplified, no GUI)
+        # Create setup script
         self.printer.progress("Creating setup script...")
         self.setup_script_generator.create_simple_setup_script(bundle_dir, project_name)
         self.printer.progress_done("Setup script created")
     
-    def _create_archive_from_bundle(self, bundle_path, bundle_type, bundle_name):
-        """Create archive from bundle folder"""
+    def _create_zip_archive(self, bundle_path, bundle_name):
+        """Create ZIP archive from bundle folder"""
         # Determine archive name
         if bundle_name is None:
-            archive_name = f"{bundle_path.name}"
+            archive_name = f"{bundle_path.name}.zip"
         else:
-            archive_name = bundle_name
+            archive_name = f"{bundle_name}.zip"
         
         # Create archive
         archive_manager = ArchiveManager(self.bundle_config.compression_level)
         
         try:
             print()  # Add spacing before archive creation
-            archive_path = archive_manager.create_archive(
-                bundle_path, bundle_path.parent, archive_name, bundle_type
+            archive_path = archive_manager.create_zip_archive(
+                bundle_path, bundle_path.parent, archive_name
             )
             
             # Print completion info
-            ArchiveInfoProvider.print_archive_completion(archive_path, self.bundle_config.compression_level)
+            archive_size = archive_path.stat().st_size
+            self.header_printer.print_completion_info(
+                archive_path, "zip", archive_size, self.bundle_config.compression_level
+            )
             
             return archive_path
             
         except Exception as e:
-            raise Exception(f"Archive creation failed: {str(e)}")
+            raise Exception(f"ZIP creation failed: {str(e)}")
 
 
 class BundlerWorkflow:
@@ -192,56 +187,3 @@ class BundlerWorkflow:
     def create_zip_bundle(self, project_name, bundle_name=None):
         """Create ZIP bundle workflow"""
         return self.bundler.bundle_project(project_name, 'zip', bundle_name)
-    
-    def create_7zip_bundle(self, project_name, bundle_name=None):
-        """Create 7-Zip bundle workflow"""
-        return self.bundler.bundle_project(project_name, '7zip', bundle_name)
-    
-    def get_supported_formats(self):
-        """Get list of supported bundle formats"""
-        return ['folder', 'zip', '7zip']
-
-
-class BundlerStatus:
-    """Track bundler operation status"""
-    
-    def __init__(self):
-        self.current_operation = None
-        self.progress_percentage = 0
-        self.errors = []
-        self.warnings = []
-    
-    def set_operation(self, operation_name):
-        """Set current operation"""
-        self.current_operation = operation_name
-        self.progress_percentage = 0
-    
-    def update_progress(self, percentage):
-        """Update progress percentage"""
-        self.progress_percentage = max(0, min(100, percentage))
-    
-    def add_error(self, error_message):
-        """Add error message"""
-        self.errors.append(error_message)
-    
-    def add_warning(self, warning_message):
-        """Add warning message"""
-        self.warnings.append(warning_message)
-    
-    def has_errors(self):
-        """Check if there are any errors"""
-        return len(self.errors) > 0
-    
-    def has_warnings(self):
-        """Check if there are any warnings"""
-        return len(self.warnings) > 0
-    
-    def get_summary(self):
-        """Get operation summary"""
-        return {
-            'operation': self.current_operation,
-            'progress': self.progress_percentage,
-            'errors': self.errors,
-            'warnings': self.warnings,
-            'success': not self.has_errors()
-        }

@@ -1,6 +1,24 @@
+import os
 import shutil
 from pathlib import Path
 
+class ProjectValidator:
+    """Validate project directory and structure"""
+    
+    def validate_project_directory(self, project_path):
+        """Validate project directory exists and is accessible"""
+        project_path = Path(project_path).resolve()
+        
+        if not project_path.exists():
+            raise FileNotFoundError(f"Project directory '{project_path}' not found")
+        
+        if not project_path.is_dir():
+            raise NotADirectoryError(f"'{project_path}' is not a directory")
+        
+        if not os.access(project_path, os.R_OK):
+            raise PermissionError(f"No read permission for project directory: {project_path}")
+        
+        return project_path
 
 class ProjectFileManager:
     """Manage project file operations"""
