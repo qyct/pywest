@@ -5,7 +5,7 @@ import zipfile
 import tomllib
 from pathlib import Path
 from .utils import StylePrinter, PythonManager
-from .genb import ScriptGenerator
+from .gens import ScriptGenerator
 
 class ProjectBundler:
     """Main project bundler class"""
