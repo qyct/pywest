@@ -101,6 +101,10 @@ class ProjectBundler:
         else:
             raise ValueError("Missing required 'entry' field in [tool.pywest] section of pyproject.toml")
         
+        # Get optional icon
+        if 'tool' in data and 'pywest' in data['tool'] and 'icon' in data['tool']['pywest']:
+            config['icon'] = data['tool']['pywest']['icon']
+        
         # Get project name
         if 'project' in data and 'name' in data['project']:
             config['name'] = data['project']['name']
@@ -132,10 +136,20 @@ class ProjectBundler:
             # Copy project files
             self._copy_project_files(project_path, bundle_dir)
             
-            # Copy pyproject.toml to bin folder if it exists
+            # Copy pyproject.toml to bin folder
             pyproject_source = project_path / "pyproject.toml"
             pyproject_dest = bin_dir / "pyproject.toml"
             shutil.copy2(pyproject_source, pyproject_dest)
+
+            # Copy icon to bin folder if it exists
+            if "icon" in config and config["icon"]:
+                icon_source = project_path / config["icon"]
+                icon_dest = bin_dir / Path(config["icon"]).name
+                
+                if icon_source.exists():
+                    shutil.copy2(icon_source, icon_dest)
+                else:
+                    raise FileNotFoundError(f"Icon file '{icon_source}' not found")
             
             # Create scripts
             self.script_generator.create_run_script(bundle_dir, config['entry_point'], config['name'])
