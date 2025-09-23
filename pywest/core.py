@@ -70,28 +70,25 @@ class ProjectBundler:
         pyproject_path = project_path / "pyproject.toml"
         config = {'dependencies': [], 'entry_point': None, 'name': project_path.name}
         
-        if pyproject_path.exists():
-            try:
-                with open(pyproject_path, 'rb') as f:
-                    data = tomllib.load(f)
-                
-                # Get dependencies
-                if 'project' in data and 'dependencies' in data['project']:
-                    config['dependencies'] = data['project']['dependencies']
-                
-                # Get entry point
-                tool_section = data.get("tool", {})
-                pywest_section = tool_section.get("pywest", {})
-                entry = pywest_section.get("entry")
-                if entry:
-                    config['entry_point'] = entry
-                
-                # Get project name
-                if 'project' in data and 'name' in data['project']:
-                    config['name'] = data['project']['name']
-                    
-            except Exception as e:
-                self.printer.warning(f"Could not parse pyproject.toml: {str(e)}")
+        if not pyproject_path.exists():
+            raise FileNotFoundError(f"pyproject.toml not found '{project_path}'")
+        
+        with open(pyproject_path, 'rb') as f:
+            data = tomllib.load(f)
+        
+        # Get dependencies
+        if 'project' in data and 'dependencies' in data['project']:
+            config['dependencies'] = data['project']['dependencies']
+        
+        # Get entry point
+        if 'tool' in data and 'pywest' in data['tool'] and 'entry' in data['tool']['pywest']:
+            config['entry_point'] = data['tool']['pywest']['entry']
+        else:
+            raise ValueError("Missing required 'entry' field in [tool.pywest] section of pyproject.toml")
+        
+        # Get project name
+        if 'project' in data and 'name' in data['project']:
+            config['name'] = data['project']['name']
         
         return config
     

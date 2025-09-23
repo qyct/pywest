@@ -58,8 +58,7 @@ class PyWestCLI:
         except KeyboardInterrupt:
             self.printer.warning("Operation cancelled by user")
             return 1
-        except Exception as e:
-            self.printer.error(f"Unexpected error: {str(e)}")
+        except Exception as _:
             return 1
 
 
