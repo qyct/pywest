@@ -27,6 +27,17 @@ class ProjectBundler:
         self.printer = StylePrinter()
         self.python_manager = PythonManager()
         self.script_generator = ScriptGenerator()
+
+    def _sanitize_bundle_name(self, name: str) -> str:
+        # Lowercase
+        name = name.lower()
+        # Replace any non-alphanumeric with underscore
+        name = re.sub(r'[^a-z0-9]', '_', name)
+        # Collapse multiple underscores
+        name = re.sub(r'_+', '_', name)
+        # Strip leading/trailing underscores
+        name = name.strip('_')
+        return name
     
     def bundle_project(self, project_name, bundle_type='folder', bundle_name=None):
         """Main entry point for project bundling"""
@@ -36,9 +47,12 @@ class ProjectBundler:
             
             # Load project configuration
             config = self._load_project_config(project_path)
+
+            # Sanitize bundle name
+            bundle_name = self._sanitize_bundle_name(bundle_name or f"{project_path.name}_bundle")
             
             # Create bundle
-            bundle_path = self._create_bundle(project_path, config, bundle_name or f"{project_path.name}_bundle")
+            bundle_path = self._create_bundle(project_path, config, bundle_name)
             
             if bundle_path is None:
                 return None
@@ -93,22 +107,8 @@ class ProjectBundler:
         
         return config
     
-    def _sanitize_bundle_name(self, name: str) -> str:
-        # Lowercase
-        name = name.lower()
-        # Replace any non-alphanumeric with underscore
-        name = re.sub(r'[^a-z0-9]', '_', name)
-        # Collapse multiple underscores
-        name = re.sub(r'_+', '_', name)
-        # Strip leading/trailing underscores
-        name = name.strip('_')
-        return name
-    
     def _create_bundle(self, project_path, config, bundle_name):
         """Create complete bundle folder"""
-        # Print header
-        bundle_name = self._sanitize_bundle_name(bundle_name)
-
         # Print header
         self.printer.print_banner()
         self.printer.print_project_info(
