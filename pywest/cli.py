@@ -1,7 +1,7 @@
 import sys
 import argparse
 from pathlib import Path
-from .ui import StylePrinter
+from .utils import StylePrinter
 from .core import ProjectBundler
 
 

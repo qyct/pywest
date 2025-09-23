@@ -1,6 +1,6 @@
 import tomllib
 from pathlib import Path
-from .ui import StylePrinter
+from .utils import StylePrinter
 from .const import PyWestConstants
 
 
@@ -32,19 +32,22 @@ class ProjectConfig:
         return self.config_data is not None
     
     def get_entry_point(self):
-        """Extract entry point from pyproject.toml"""
+        """Extract entry point from [tool.pywest] in pyproject.toml"""
         if not self.config_data:
-            return None, None
-            
-        try:
-            scripts = self.config_data['project']['scripts']
-            if len(scripts) != 1:
-                self.printer.warning("Multiple entry points found, using first one")
-            
-            entry_name, entry_point = next(iter(scripts.items()))
-            return entry_name, entry_point
-        except KeyError:
-            return None, None
+            raise ValueError("pyproject.toml not loaded")
+
+        tool_section = self.config_data.get("tool", {})
+        pywest_section = tool_section.get("pywest", {})
+        entry = pywest_section.get("entry")
+
+        if not entry:
+            raise ValueError(
+                "Entry point not found in [tool.pywest] section of pyproject.toml. "
+                "Define it like:\n\n"
+                "[tool.pywest]\nentry = \"src.main:cli\""
+            )
+
+        return "pywest-cli", entry
     
     def get_dependencies(self):
         """Extract dependencies from pyproject.toml"""
