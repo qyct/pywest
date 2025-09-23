@@ -1,6 +1,6 @@
 import sys
 import argparse
-from .bndl import ProjectBundler
+from .core import ProjectBundler
 from .utils import StylePrinter
 
 
