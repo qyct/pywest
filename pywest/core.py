@@ -133,8 +133,8 @@ class ProjectBundler:
                 self.python_version, bin_dir, config['dependencies']
             )
             
-            # Copy project files
-            self._copy_project_files(project_path, bundle_dir)
+            # Copy project files (excluding icon to prevent duplication)
+            self._copy_project_files(project_path, bundle_dir, config.get('icon'))
             
             # Copy pyproject.toml to bin folder
             pyproject_source = project_path / "pyproject.toml"
@@ -187,14 +187,24 @@ class ProjectBundler:
         except PermissionError as e:
             raise PermissionError(f"Cannot create bundle directory. Check permissions: {str(e)}")
     
-    def _copy_project_files(self, source_path, target_path):
-        """Copy project files to target directory, excluding certain patterns"""
+    def _copy_project_files(self, source_path, target_path, icon_path=None):
+        """Copy project files to target directory, excluding certain patterns and icon file"""
         exclude_items = set(self.EXCLUDE_PATTERNS)
         exclude_items.add('pyproject.toml')
+        
+        # Add icon file to exclude list if it exists to prevent duplication
+        if icon_path:
+            exclude_items.add(icon_path)
+            # Also exclude just the filename in case it's in the root
+            exclude_items.add(Path(icon_path).name)
         
         try:
             for item in source_path.iterdir():
                 if item.name in exclude_items:
+                    continue
+                
+                # Check if this item matches the icon path (for relative paths)
+                if icon_path and str(item.relative_to(source_path)) == icon_path:
                     continue
                 
                 dest = target_path / item.name
