@@ -1,23 +1,7 @@
 from pathlib import Path
 from .utils import StylePrinter
-from .const import PyWestConstants
 
-class PyWestConstants:
-    """Application constants - simplified without GUI dependencies"""
-    DEFAULT_PYTHON_VERSION = "3.12.10"
-    DEFAULT_COMPRESSION_LEVEL = 6
-    SUPPORTED_PYTHON_VERSIONS = ['3.12.10', '3.11.9']
-    
-    # URLs
-    PYTHON_BASE_URL = "https://www.python.org/ftp/python"
-    GET_PIP_URL = "https://bootstrap.pypa.io/get-pip.py"
-    
-    # File patterns
-    EXCLUDE_PATTERNS = {'.git', '__pycache__', '.pytest_cache', 'dist', 'build', '.venv', 'venv'}
-    MAIN_FILE_CANDIDATES = ['main.py', '__main__.py']
-    
-    # Cache directory
-    CACHE_DIR_NAME = ".pywest"
+
 
 class RunScriptGenerator:
     """Generate run scripts for bundled projects"""
@@ -74,14 +58,14 @@ pause
     def _generate_main_file_script(self, bundle_dir, project_name):
         """Generate script content looking for main files"""
         # Look for main files in the bundle directory
-        main_candidates = PyWestConstants.MAIN_FILE_CANDIDATES
+        # main_candidates = PyWestConstants.MAIN_FILE_CANDIDATES
         main_file = None
         
-        for candidate in main_candidates:
-            candidate_path = bundle_dir / candidate
-            if candidate_path.exists():
-                main_file = candidate
-                break
+        # for candidate in main_candidates:
+        #     candidate_path = bundle_dir / candidate
+        #     if candidate_path.exists():
+        #         main_file = candidate
+        #         break
         
         if main_file:
             return f"""@echo off
