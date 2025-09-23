@@ -26,7 +26,7 @@ class Colors:
 
 
 class PyWestConstants:
-    """Application constants"""
+    """Application constants - simplified without GUI dependencies"""
     DEFAULT_PYTHON_VERSION = "3.12.10"
     DEFAULT_COMPRESSION_LEVEL = 6
     SUPPORTED_PYTHON_VERSIONS = ['3.12.10', '3.11.9']
@@ -38,9 +38,6 @@ class PyWestConstants:
     # File patterns
     EXCLUDE_PATTERNS = {'.git', '__pycache__', '.pytest_cache', 'dist', 'build', '.venv', 'venv'}
     MAIN_FILE_CANDIDATES = ['main.py', '__main__.py']
-    
-    # Required dependencies for installer
-    REQUIRED_INSTALLER_DEPS = ["dearpygui", "pywin32", "Pillow"]
     
     # Cache directory
     CACHE_DIR_NAME = ".pywest"

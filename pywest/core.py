@@ -1,18 +1,17 @@
-import py7zr
+import shutil
 from pathlib import Path
 from .config import ProjectConfig, BundleConfig
 from .dl import PythonDownloader
 from .env import PythonEnvironment, DependencyInstaller
 from .files import ProjectFileManager, BundleDirectoryManager
 from .run import RunScriptGenerator, SetupScriptGenerator
-from .inst import InstallerGUIGenerator
 from .pack import ArchiveManager, ArchiveInfoProvider
 from .ui import StylePrinter, HeaderPrinter
 from .valid import ProjectValidator, BundleValidator
 
 
 class ProjectBundler:
-    """Main project bundler class"""
+    """Main project bundler class - simplified without GUI components"""
     
     def __init__(self, python_version=None, compression_level=None):
         self.bundle_config = BundleConfig(python_version, compression_level)
@@ -26,7 +25,6 @@ class ProjectBundler:
         self.bundle_dir_manager = BundleDirectoryManager()
         self.run_script_generator = RunScriptGenerator()
         self.setup_script_generator = SetupScriptGenerator()
-        self.installer_generator = InstallerGUIGenerator()
         
     def bundle_project(self, project_name, bundle_type='folder', bundle_name=None):
         """Main entry point for project bundling"""
@@ -81,17 +79,14 @@ class ProjectBundler:
             return None
         
         try:
-            # Setup Python environment
+            # Setup Python environment (without GUI dependencies)
             self._setup_python_environment(bundle_dir, dependencies)
             
-            # Copy project files (excluding icon since it's handled separately)
-            icon_path = project_config.get_icon_path()
-            self.file_manager.copy_project_files(
-                project_path, bundle_dir, exclude_pyproject=True, icon_path=icon_path
-            )
+            # Copy project files and pyproject.toml
+            self._copy_project_and_config_files(project_path, project_config, bundle_dir)
             
-            # Create scripts and handle icon conversion
-            self._create_bundle_scripts(bundle_dir, project_config, project_path.name)
+            # Create scripts and handle icon
+            self._create_bundle_scripts_and_assets(bundle_dir, project_config, project_path.name)
             
             # Print completion info
             self.header_printer.print_completion_info(bundle_dir, "folder")
@@ -103,7 +98,7 @@ class ProjectBundler:
             raise Exception(f"Bundle creation failed: {str(e)}")
     
     def _setup_python_environment(self, bundle_dir, dependencies):
-        """Setup Python environment with dependencies"""
+        """Setup Python environment with only project dependencies"""
         # Download and extract Python
         bin_dir = bundle_dir / "bin"
         self.python_downloader.download_and_extract(
@@ -116,16 +111,34 @@ class ProjectBundler:
         python_env = PythonEnvironment(bin_dir)
         python_env.setup_pip()
         
-        # Install dependencies
-        dependency_installer = DependencyInstaller(python_env)
-        dependency_installer.install_all_dependencies(dependencies)
+        # Install only project dependencies (no GUI dependencies)
+        if dependencies:
+            dependency_installer = DependencyInstaller(python_env)
+            dependency_installer.install_project_dependencies(dependencies)
         
         self.printer.progress("Setting up Python environment...")
         self.printer.progress_done("Python environment ready")
     
-    def _create_bundle_scripts(self, bundle_dir, project_config, project_name):
-        """Create all bundle scripts"""
-        # Convert and copy icon to bin folder
+    def _copy_project_and_config_files(self, project_path, project_config, bundle_dir):
+        """Copy project files and pyproject.toml to bundle"""
+        # Copy project files (excluding pyproject.toml for now)
+        icon_path = project_config.get_icon_path()
+        self.file_manager.copy_project_files(
+            project_path, bundle_dir, exclude_pyproject=True, icon_path=icon_path
+        )
+        
+        # Copy pyproject.toml to bin folder if it exists
+        pyproject_source = project_path / "pyproject.toml"
+        if pyproject_source.exists():
+            bin_dir = bundle_dir / "bin"
+            bin_dir.mkdir(exist_ok=True)
+            pyproject_dest = bin_dir / "pyproject.toml"
+            shutil.copy2(pyproject_source, pyproject_dest)
+            self.printer.dim("Copied pyproject.toml to bin folder")
+    
+    def _create_bundle_scripts_and_assets(self, bundle_dir, project_config, project_name):
+        """Create all bundle scripts and assets"""
+        # Convert and copy icon to bin folder using Pillow
         project_config.convert_and_copy_icon(bundle_dir)
         
         # Create run script
@@ -134,11 +147,10 @@ class ProjectBundler:
         self.run_script_generator.create_run_script(bundle_dir, entry_name, entry_point, project_name)
         self.printer.progress_done("Launcher created")
         
-        # Create setup script
-        self.printer.progress("Creating installer...")
-        self.setup_script_generator.create_setup_script(bundle_dir, project_name)
-        self.installer_generator.create_installer_script(bundle_dir, project_name)
-        self.printer.progress_done("Installer created")
+        # Create setup script (simplified, no GUI)
+        self.printer.progress("Creating setup script...")
+        self.setup_script_generator.create_simple_setup_script(bundle_dir, project_name)
+        self.printer.progress_done("Setup script created")
     
     def _create_archive_from_bundle(self, bundle_path, bundle_type, bundle_name):
         """Create archive from bundle folder"""
