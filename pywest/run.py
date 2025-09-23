@@ -89,23 +89,12 @@ pause
 
 
 class SetupScriptGenerator:
-    """Generate setup.bat scripts for GUI installers"""
+    """Generate simplified setup.bat scripts"""
     
-    def create_setup_script(self, bundle_dir, project_name):
-        """Create setup.bat script for GUI installer"""
-        setup_content = self._generate_setup_content(project_name)
-        setup_path = Path(bundle_dir) / "setup.bat"
-        
-        try:
-            with open(setup_path, 'w') as f:
-                f.write(setup_content)
-            return setup_path
-        except Exception as e:
-            raise Exception(f"Failed to create setup script: {str(e)}")
-    
-    def _generate_setup_content(self, project_name):
-        """Generate setup.bat content"""
-        return f'''@echo off
+    def create_simple_setup_script(self, bundle_dir, project_name):
+        """Create simplified setup.bat script using the provided content"""
+        # Use the exact content from setup.bat you provided
+        setup_content = '''@echo off
 :: Check for admin privileges
 >nul 2>&1 "%SYSTEMROOT%\\system32\\cacls.exe" "%SYSTEMROOT%\\system32\\config\\system"
 
@@ -140,3 +129,16 @@ timeout /t 2 >nul
 
 exit
 '''
+        
+        setup_path = Path(bundle_dir) / "setup.bat"
+        
+        try:
+            with open(setup_path, 'w') as f:
+                f.write(setup_content)
+            return setup_path
+        except Exception as e:
+            raise Exception(f"Failed to create setup script: {str(e)}")
+    
+    def create_setup_script(self, bundle_dir, project_name):
+        """Alias for backward compatibility"""
+        return self.create_simple_setup_script(bundle_dir, project_name)
