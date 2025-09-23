@@ -134,19 +134,12 @@ class ProjectBundler:
             
             # Copy pyproject.toml to bin folder if it exists
             pyproject_source = project_path / "pyproject.toml"
-            if pyproject_source.exists():
-                pyproject_dest = bin_dir / "pyproject.toml"
-                shutil.copy2(pyproject_source, pyproject_dest)
-                self.printer.dim("Copied pyproject.toml to bin folder")
+            pyproject_dest = bin_dir / "pyproject.toml"
+            shutil.copy2(pyproject_source, pyproject_dest)
             
             # Create scripts
-            self.printer.progress("Generating launcher...")
             self.script_generator.create_run_script(bundle_dir, config['entry_point'], config['name'])
-            self.printer.progress_done("Launcher created")
-            
-            self.printer.progress("Creating setup script...")
             self.script_generator.create_setup_script(bundle_dir, config['name'])
-            self.printer.progress_done("Setup script created")
             
             # Print completion info
             self.printer.print_completion_info(bundle_dir, "folder")

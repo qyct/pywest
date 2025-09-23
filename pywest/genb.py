@@ -19,8 +19,6 @@ class ScriptGenerator:
         
         with open(run_script_path, 'w', encoding='utf-8') as f:
             f.write(script_content)
-        
-        self.printer.dim(f"Created run script: {run_script_path}")
     
     def create_setup_script(self, bundle_dir, project_name):
         """Create setup.bat script with admin elevation"""
@@ -44,7 +42,7 @@ pause
         with open(setup_script_path, 'w', encoding='utf-8') as f:
             f.write(script_content)
         
-        self.printer.dim(f"Created setup script: {setup_script_path}")
+        # self.printer.dim(f"Created setup script: {setup_script_path}")
     
     def _generate_entry_point_script(self, entry_point, project_name):
         """Generate script content using entry point"""

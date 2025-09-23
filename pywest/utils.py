@@ -114,10 +114,10 @@ class PythonManager:
         cached_path = self.get_cached_path(python_version)
         
         if self.is_cached(python_version):
-            print(f"Using cached Python {python_version}...")
+            print(f"Using cached Python embeddable {python_version}...")
             return cached_path
         
-        print(f"Downloading Python {python_version}...")
+        print(f"Downloading Python embeddable {python_version}...")
         embed_url = f"{self.BASE_URL}/{python_version}/python-{python_version}-embed-amd64.zip"
         
         old_stderr = sys.stderr
@@ -165,9 +165,6 @@ class PythonManager:
         # Install dependencies
         if dependencies:
             self._install_dependencies(python_exe, dependencies)
-        
-        self.printer.progress("Setting up Python environment...")
-        self.printer.progress_done("Python environment ready")
     
     def _setup_pip(self, python_exe, python_dir):
         """Setup pip in embeddable Python"""
