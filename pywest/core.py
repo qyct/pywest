@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import zipfile
 import tomllib
@@ -92,8 +93,22 @@ class ProjectBundler:
         
         return config
     
+    def _sanitize_bundle_name(self, name: str) -> str:
+        # Lowercase
+        name = name.lower()
+        # Replace any non-alphanumeric with underscore
+        name = re.sub(r'[^a-z0-9]', '_', name)
+        # Collapse multiple underscores
+        name = re.sub(r'_+', '_', name)
+        # Strip leading/trailing underscores
+        name = name.strip('_')
+        return name
+    
     def _create_bundle(self, project_path, config, bundle_name):
         """Create complete bundle folder"""
+        # Print header
+        bundle_name = self._sanitize_bundle_name(bundle_name)
+
         # Print header
         self.printer.print_banner()
         self.printer.print_project_info(
