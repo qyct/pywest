@@ -4,16 +4,13 @@ import urllib.request
 import zipfile
 import shutil
 from pathlib import Path
-from .ui import StylePrinter
-from .const import PyWestConstants
 
 
 class PythonDownloader:
     """Handle downloading and caching Python embeddable versions"""
     
     def __init__(self):
-        self.printer = StylePrinter()
-        self.cache_dir = Path.home() / PyWestConstants.CACHE_DIR_NAME
+        self.cache_dir = Path.home() / ".pywest"
         self.cache_dir.mkdir(exist_ok=True)
     
     def get_cached_path(self, python_version):
@@ -31,11 +28,10 @@ class PythonDownloader:
         cached_path = self.get_cached_path(python_version)
         
         if self.is_cached(python_version):
-            self.printer.progress(f"Using cached Python {python_version} embeddable...")
-            self.printer.progress_done(f"Using Python {python_version} embeddable from cache")
+            print(f"Using cached Python {python_version}...")
             return cached_path
         
-        self.printer.progress(f"Downloading Python {python_version} embeddable...")
+        print(f"Downloading Python {python_version}...")
         
         old_stderr = sys.stderr
         sys.stderr = open(os.devnull, 'w')
@@ -48,7 +44,6 @@ class PythonDownloader:
             sys.stderr.close()
             sys.stderr = old_stderr
         
-        self.printer.progress_done(f"Python {python_version} embeddable downloaded")
         return cached_path
     
     def extract_python(self, cached_path, target_dir):
@@ -74,35 +69,3 @@ class PythonDownloader:
         """Download and extract Python embeddable in one step"""
         cached_path = self.download_python(python_version, embed_url)
         return self.extract_python(cached_path, target_dir)
-
-
-class GetPipDownloader:
-    """Handle downloading get-pip.py for pip installation"""
-    
-    def __init__(self):
-        self.printer = StylePrinter()
-    
-    def download_get_pip(self, target_dir):
-        """Download get-pip.py to target directory"""
-        get_pip_path = Path(target_dir) / "get-pip.py"
-        
-        old_stderr = sys.stderr
-        sys.stderr = open(os.devnull, 'w')
-        
-        try:
-            urllib.request.urlretrieve(PyWestConstants.GET_PIP_URL, get_pip_path)
-        except Exception as e:
-            raise Exception(f"Failed to download get-pip.py: {str(e)}")
-        finally:
-            sys.stderr.close()
-            sys.stderr = old_stderr
-        
-        return get_pip_path
-    
-    def cleanup_get_pip(self, get_pip_path):
-        """Remove get-pip.py after installation"""
-        try:
-            if Path(get_pip_path).exists():
-                Path(get_pip_path).unlink()
-        except Exception:
-            pass
