@@ -1,3 +1,7 @@
+from pathlib import Path
+from .utils import StylePrinter
+
+
 class ScriptGenerator:
     """Generate run and setup scripts for bundled projects"""
     
