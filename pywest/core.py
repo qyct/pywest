@@ -204,6 +204,10 @@ class ProjectBundler:
             'name': project_path.name
         }
         
+        # Get dependencies
+        if 'project' in toml_data and 'dependencies' in toml_data['project']:
+            config['dependencies'] = toml_data['project']['dependencies']
+        
         # Get optional icon
         if 'tool' in toml_data and 'pywest' in toml_data['tool'] and 'icon' in toml_data['tool']['pywest']:
             config['icon'] = toml_data['tool']['pywest']['icon']
@@ -220,7 +224,8 @@ class ProjectBundler:
         self.printer.print_banner()
         self.printer.print_project_info(
             config['name'], 
-            project_path.parent / bundle_name
+            project_path.parent / bundle_name,
+            len(config['dependencies'])
         )
         
         # Create bundle directory
@@ -228,13 +233,13 @@ class ProjectBundler:
         if bundle_dir is None:
             return None
         
-        dependencies = ["numpy", "scipy"]
+        config['dependencies'].append("click")
 
         try:
             # Setup Python environment
             bin_dir = bundle_dir / "bin"
             self.python_manager.setup_environment(
-                self.python_version, bin_dir, dependencies
+                self.python_version, bin_dir, config['dependencies']
             )
             
             # Copy project files (excluding icon to prevent duplication)

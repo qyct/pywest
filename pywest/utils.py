@@ -68,9 +68,11 @@ class StylePrinter:
         print(f"{StylePrinter.Colors.DIM}{'─' * 50}{StylePrinter.Colors.RESET}")
 
     @staticmethod
-    def print_project_info(project_name, output_path):
+    def print_project_info(project_name, output_path, dependency_count=0):
         print(f"Project: {project_name}")
         print(f"Output: {output_path}")
+        if dependency_count > 0:
+            print(f"Dependencies: {dependency_count}")
         print("")
 
     @staticmethod
