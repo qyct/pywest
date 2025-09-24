@@ -6,12 +6,20 @@ import tomllib
 from pathlib import Path
 from .utils import StylePrinter, PythonManager
 from .gens import ScriptGenerator
+from .icon import DEFAULT_ICON_BASE64
+
+# Import Pillow for image conversion (required dependency)
+from PIL import Image
+import base64
+import io
 
 class ProjectBundler:
     """Main project bundler class"""
     
     DEFAULT_COMPRESSION = 6
     EXCLUDE_PATTERNS = {'.git', '__pycache__', '.pytest_cache', 'dist', 'build', '.venv', 'venv'}
+    SUPPORTED_IMAGE_FORMATS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.gif'}
+    ICON_SIZE = (256, 256)  # Standard icon size
     
     def __init__(self, python_version=None, compression_level=None):
         self.python_version = python_version or PythonManager.DEFAULT_VERSION
@@ -39,14 +47,122 @@ class ProjectBundler:
         name = name.strip('_')
         return name
     
+    def _resize_image_to_icon(self, image_path, output_path):
+        """Resize and convert image to 256x256 ICO format using Pillow"""
+        try:
+            with Image.open(image_path) as img:
+                # Convert to RGBA if necessary (ICO format supports transparency)
+                if img.mode != 'RGBA':
+                    img = img.convert('RGBA')
+                
+                # Resize to exactly 256x256
+                resized_img = img.resize(self.ICON_SIZE, Image.Resampling.LANCZOS)
+                
+                # Save as ICO with 256x256 size
+                resized_img.save(output_path, format='ICO', sizes=[self.ICON_SIZE])
+                
+        except Exception as e:
+            raise Exception(f"Failed to convert image to 256x256 ICO format: {str(e)}")
+    
+    def _generate_default_icon_256x256(self, output_path):
+        """Generate 256x256 default icon from base64 constant"""
+        try:
+            # Decode base64 icon data
+            icon_data = base64.b64decode(DEFAULT_ICON_BASE64)
+            
+            # Load the base64 icon as an image and resize to 256x256
+            with Image.open(io.BytesIO(icon_data)) as img:
+                # Convert to RGBA if necessary
+                if img.mode != 'RGBA':
+                    img = img.convert('RGBA')
+                
+                # Resize to 256x256
+                resized_img = img.resize(self.ICON_SIZE, Image.Resampling.LANCZOS)
+                
+                # Save as ICO
+                resized_img.save(output_path, format='ICO', sizes=[self.ICON_SIZE])
+                
+        except Exception as e:
+            # Fallback: create a simple colored 256x256 icon
+            try:
+                # Create a simple default icon (blue square with white border)
+                img = Image.new('RGBA', self.ICON_SIZE, (70, 130, 180, 255))  # Steel blue
+                # Add white border
+                for i in range(8):  # 8-pixel border
+                    # Top and bottom borders
+                    for x in range(self.ICON_SIZE[0]):
+                        img.putpixel((x, i), (255, 255, 255, 255))
+                        img.putpixel((x, self.ICON_SIZE[1] - 1 - i), (255, 255, 255, 255))
+                    # Left and right borders
+                    for y in range(self.ICON_SIZE[1]):
+                        img.putpixel((i, y), (255, 255, 255, 255))
+                        img.putpixel((self.ICON_SIZE[0] - 1 - i, y), (255, 255, 255, 255))
+                
+                img.save(output_path, format='ICO', sizes=[self.ICON_SIZE])
+                
+            except Exception as fallback_e:
+                raise Exception(f"Failed to generate default 256x256 icon: {str(e)}, fallback error: {str(fallback_e)}")
+    
+    def _validate_project_config(self, project_path):
+        """Validate project configuration early - check for entry point and icon"""
+        pyproject_path = project_path / "pyproject.toml"
+        
+        if not pyproject_path.exists():
+            raise FileNotFoundError(f"pyproject.toml not found in '{project_path}'")
+        
+        # Load and validate configuration
+        with open(pyproject_path, 'rb') as f:
+            data = tomllib.load(f)
+        
+        # Check for required entry point
+        if not ('tool' in data and 'pywest' in data['tool'] and 'entry' in data['tool']['pywest']):
+            raise ValueError(
+                "Missing required 'entry' field in [tool.pywest] section of pyproject.toml.\n"
+                "Please add: [tool.pywest]\nentry = \"module.name:function_name\""
+            )
+        
+        entry_point = data['tool']['pywest']['entry']
+        if ':' not in entry_point:
+            raise ValueError(
+                f"Invalid entry point format: '{entry_point}'. "
+                "Expected format: 'module.name:function_name'"
+            )
+        
+        # Validate icon if specified
+        icon_path = None
+        if 'tool' in data and 'pywest' in data['tool'] and 'icon' in data['tool']['pywest']:
+            icon_path = data['tool']['pywest']['icon']
+            if icon_path:  # Only validate if not empty
+                icon_source = project_path / icon_path
+                
+                if not icon_source.exists():
+                    raise FileNotFoundError(f"Icon file '{icon_source}' not found")
+                
+                # Check if it's a supported format
+                source_ext = icon_source.suffix.lower()
+                if source_ext not in self.SUPPORTED_IMAGE_FORMATS and source_ext != '.ico':
+                    raise ValueError(
+                        f"Unsupported icon format '{source_ext}'. "
+                        f"Supported formats: {', '.join(self.SUPPORTED_IMAGE_FORMATS)} and .ico"
+                    )
+        
+        return {
+            'entry_point': entry_point,
+            'icon_path': icon_path,
+            'data': data  # Return full data for later use
+        }
+    
     def bundle_project(self, project_name, bundle_type='folder', bundle_name=None):
         """Main entry point for project bundling"""
         try:
-            # Validate project
+            # Validate project directory first
             project_path = self._validate_project(project_name)
             
-            # Load project configuration
-            config = self._load_project_config(project_path)
+            # Validate configuration early (entry point and icon)
+            config_validation = self._validate_project_config(project_path)
+            
+            # Load full project configuration
+            config = self._load_project_config(project_path, config_validation['data'])
 
             # Sanitize bundle name
             bundle_name = self._sanitize_bundle_name(bundle_name or f"{project_path.name}_bundle")
@@ -80,34 +196,25 @@ class ProjectBundler:
         
         return project_path
     
-    def _load_project_config(self, project_path):
-        """Load and parse pyproject.toml if it exists"""
-        pyproject_path = project_path / "pyproject.toml"
-        config = {'dependencies': [], 'entry_point': None, 'name': project_path.name}
-        
-        if not pyproject_path.exists():
-            raise FileNotFoundError(f"pyproject.toml not found '{project_path}'")
-        
-        with open(pyproject_path, 'rb') as f:
-            data = tomllib.load(f)
+    def _load_project_config(self, project_path, toml_data):
+        """Load project configuration from already validated toml data"""
+        config = {
+            'dependencies': [], 
+            'entry_point': toml_data['tool']['pywest']['entry'],
+            'name': project_path.name
+        }
         
         # Get dependencies
-        if 'project' in data and 'dependencies' in data['project']:
-            config['dependencies'] = data['project']['dependencies']
-        
-        # Get entry point
-        if 'tool' in data and 'pywest' in data['tool'] and 'entry' in data['tool']['pywest']:
-            config['entry_point'] = data['tool']['pywest']['entry']
-        else:
-            raise ValueError("Missing required 'entry' field in [tool.pywest] section of pyproject.toml")
+        if 'project' in toml_data and 'dependencies' in toml_data['project']:
+            config['dependencies'] = toml_data['project']['dependencies']
         
         # Get optional icon
-        if 'tool' in data and 'pywest' in data['tool'] and 'icon' in data['tool']['pywest']:
-            config['icon'] = data['tool']['pywest']['icon']
+        if 'tool' in toml_data and 'pywest' in toml_data['tool'] and 'icon' in toml_data['tool']['pywest']:
+            config['icon'] = toml_data['tool']['pywest']['icon']
         
         # Get project name
-        if 'project' in data and 'name' in data['project']:
-            config['name'] = data['project']['name']
+        if 'project' in toml_data and 'name' in toml_data['project']:
+            config['name'] = toml_data['project']['name']
         
         return config
     
@@ -141,15 +248,9 @@ class ProjectBundler:
             pyproject_dest = bin_dir / "pyproject.toml"
             shutil.copy2(pyproject_source, pyproject_dest)
 
-            # Copy icon to bin folder if it exists
-            if "icon" in config and config["icon"]:
-                icon_source = project_path / config["icon"]
-                icon_dest = bin_dir / Path(config["icon"]).name
-                
-                if icon_source.exists():
-                    shutil.copy2(icon_source, icon_dest)
-                else:
-                    raise FileNotFoundError(f"Icon file '{icon_source}' not found")
+            # Handle icon - always create 256x256 icon.ico in bin folder
+            icon_dest = bin_dir / "icon.ico"
+            self._process_icon(project_path, config, icon_dest)
             
             # Create scripts
             self.script_generator.create_run_script(bundle_dir, config['entry_point'], config['name'])
@@ -163,6 +264,44 @@ class ProjectBundler:
         except Exception as e:
             self._cleanup_bundle(bundle_dir)
             raise Exception(f"Bundle creation failed: {str(e)}")
+    
+    def _process_icon(self, project_path, config, icon_dest):
+        """Process icon - either from config or generate default, always 256x256"""
+        if "icon" in config and config["icon"]:
+            # User specified an icon
+            icon_source = project_path / config["icon"]
+            source_ext = icon_source.suffix.lower()
+            
+            if source_ext == '.ico':
+                # Already ICO format, resize to 256x256
+                self.printer.step(f"Resizing ICO file {icon_source.name} to 256x256...")
+                self._resize_image_to_icon(icon_source, icon_dest)
+                self.printer.success(f"Icon resized and saved as 256x256 icon.ico")
+                
+            elif source_ext in self.SUPPORTED_IMAGE_FORMATS:
+                # Convert to 256x256 ICO format
+                try:
+                    self.printer.step(f"Converting {icon_source.name} to 256x256 ICO format...")
+                    self._resize_image_to_icon(icon_source, icon_dest)
+                    self.printer.success(f"Icon converted and saved as 256x256 icon.ico")
+                    
+                except Exception as e:
+                    self.printer.warning(f"Failed to convert icon: {str(e)}")
+                    # Generate default icon as fallback
+                    self.printer.step("Generating default 256x256 icon...")
+                    self._generate_default_icon_256x256(icon_dest)
+                    self.printer.info("Default 256x256 icon generated")
+            else:
+                # This shouldn't happen due to early validation, but keep as safety
+                self.printer.warning(f"Unsupported icon format '{source_ext}'")
+                self.printer.step("Generating default 256x256 icon...")
+                self._generate_default_icon_256x256(icon_dest)
+                self.printer.info("Default 256x256 icon generated")
+        else:
+            # No icon specified, generate default 256x256
+            self.printer.step("No icon specified, generating default 256x256 icon...")
+            self._generate_default_icon_256x256(icon_dest)
+            self.printer.success("Default 256x256 icon generated")
     
     def _create_bundle_directory(self, output_path, bundle_name):
         """Create bundle directory, handling existing directories"""
