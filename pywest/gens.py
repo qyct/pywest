@@ -43,7 +43,7 @@ if '%errorlevel%' NEQ '0' (
 :: Change to the directory of this script
 cd /d "%~dp0"
 :: Run bundled python with relative path to pywest.toml
-bin\\pythonw.exe -c "__import__('pyweste').installer()"
+bin\\pythonw.exe -c "__import__('pyweste').init_installer()"
 pause
 """
         
