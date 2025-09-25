@@ -1,5 +1,7 @@
 # PyWest
 
+![PyWest Logo](https://raw.githubusercontent.com/qyct/pywest/main/icon.png)
+
 A tool to pack Python projects with embeddable Python for Windows distribution.
 
 ## Features
