@@ -249,7 +249,7 @@ class ProjectBundler:
         if bundle_dir is None:
             return None
         
-        config['dependencies'].append("click")
+        config['dependencies'].append("pyweste")
 
         try:
             # Setup Python environment

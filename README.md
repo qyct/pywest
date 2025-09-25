@@ -5,8 +5,8 @@ A tool to pack Python projects with embeddable Python for Windows distribution.
 ## Features
 
 - 📦 Bundle Python projects with embeddable Python
-- 🗜️ Support for ZIP and 7-Zip compression with configurable levels (0-9)
-- 🎯 GUI installer with DearPyGui for professional installation experience
+- 🗜️ Support for ZIP compression with configurable levels (0-9)
+- 🎯 GUI installer with professional installation experience
 - 🔗 Automatic shortcut creation (Desktop, Start Menu)
 - 📋 Add/Remove Programs integration
 - ⚙️ Smart dependency detection from pyproject.toml
@@ -37,8 +37,8 @@ pywest my_project
 # Create a ZIP bundle
 pywest my_project --zip
 
-# Create a 7-Zip bundle with maximum compression
-pywest my_project --7zip -c 9
+# Create a ZIP bundle with maximum compression
+pywest my_project --zip -c 9
 
 # Use custom bundle name
 pywest my_project --name MyApplication --zip
@@ -51,11 +51,9 @@ Usage:
     pywest                           Show help information
     pywest <project_name>            Bundle project as folder (default)
     pywest <project_name> --zip      Bundle project as ZIP file
-    pywest <project_name> --7zip     Bundle project as 7Z file
 
 Options:
     --zip, -z                        Create bundle as ZIP instead of folder
-    --7zip, -7                       Create bundle as 7Z instead of folder
     --compression, -c LEVEL          Compression level (0-9, default: 6)
                                      0=store, 1=fastest, 6=default, 9=best
     --python VERSION                 Specify Python version (default: 3.12.10, also supports: 3.11.9)
@@ -71,8 +69,8 @@ pywest my_app
 # ZIP with high compression
 pywest my_app --zip -c 9
 
-# 7-Zip with custom name and maximum compression
-pywest my_app --7zip -c 9 --name "My Application"
+# Custom name with maximum compression
+pywest my_app --zip -c 9 --name "My Application"
 
 # Use Python 3.11.9
 pywest my_app --python 3.11.9 --zip
@@ -85,10 +83,9 @@ pywest my_app --name "MyApp"
 
 Each bundle includes:
 
-- `bin/` - Embeddable Python installation
+- `bin/` - Embeddable Python installation with dependencies
 - `run.bat` - Direct execution launcher
 - `setup.bat` - GUI installer launcher
-- `installer.py` - DearPyGui-based installer
 - Your project files and dependencies
 
 ## GUI Installer Features
@@ -106,8 +103,7 @@ The included `setup.bat` launches a professional installer GUI that provides:
 
 - **Windows** environment (for target deployment)
 - **Python 3.11+** for building
-- **7-Zip** (optional, for --7zip compression)
-- Project with optional `pyproject.toml` for dependency management
+- Project with `pyproject.toml` for dependency management
 
 ## Supported Python Versions
 
@@ -116,13 +112,9 @@ The included `setup.bat` launches a professional installer GUI that provides:
 
 ## Project Configuration
 
-PyWest automatically reads `pyproject.toml` files and:
+PyWest requires a `pyproject.toml` file with proper configuration:
 
-- Installs dependencies listed in `project.dependencies`
-- Uses entry points defined in `project.scripts`
-- Detects main files (`main.py`, `<project_name>.py`, `__main__.py`)
-
-Example `pyproject.toml`:
+### Required Configuration
 
 ```toml
 [project]
@@ -132,8 +124,33 @@ dependencies = [
     "click"
 ]
 
-[project.scripts]
-my-app = "my_app.main:main"
+[tool.pywest]
+entry = "myapp.main:main"        # Required: module:function entry point
+```
+
+### Optional Configuration
+
+```toml
+[tool.pywest]
+entry = "myapp.main:main"        # Required entry point
+icon = "src/icon.png"            # Optional: path to icon file (PNG, JPG, ICO supported)
+```
+
+### Entry Point Format
+
+The entry point must follow the format `module.name:function_name`:
+
+- `module.name` - Python module path (e.g., `myapp.main`)
+- `function_name` - Function to call (e.g., `main`)
+
+Example project structure:
+```
+my-project/
+├── myapp/
+│   ├── __init__.py
+│   └── main.py          # Contains main() function
+├── pyproject.toml
+└── icon.png             # Optional
 ```
 
 ## Bundle Distribution
@@ -142,26 +159,20 @@ Created bundles are completely portable and can be distributed as:
 
 1. **Folder bundles** - Ready to run with `run.bat`
 2. **ZIP archives** - Compressed for easy sharing
-3. **7-Zip archives** - Maximum compression for minimal file size
-4. **Installer packages** - Professional installation via `setup.bat`
+3. **Installer packages** - Professional installation via `setup.bat`
 
-## License
+Users can either:
+- Run directly using `run.bat`
+- Install permanently using `setup.bat` (creates shortcuts, uninstaller, etc.)
 
-Apache License 2.0 - see LICENSE file for details.
+## Icon Support
 
-## Contributing
+PyWest supports various image formats for icons:
+- PNG, JPG, JPEG, BMP, TIFF, GIF
+- ICO files (will be resized to 256x256 if needed)
+- If no icon is specified, a default icon is generated
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Support
-
-For issues and questions:
-- GitHub Issues: https://github.com/qyct/pywest/issues
-- Documentation: https://github.com/qyct/pywest
+Icons are automatically converted to 256x256 ICO format for Windows compatibility.
 
 ---
 
