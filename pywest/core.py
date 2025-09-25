@@ -104,7 +104,7 @@ class ProjectBundler:
                 raise Exception(f"Failed to generate default 256x256 icon: {str(e)}, fallback error: {str(fallback_e)}")
     
     def _validate_project_config(self, project_path):
-        """Validate project configuration early - check for entry point and icon"""
+        """Validate project configuration early - check for entry point, project name, and icon"""
         pyproject_path = project_path / "pyproject.toml"
         
         if not pyproject_path.exists():
@@ -128,6 +128,19 @@ class ProjectBundler:
                 "Expected format: 'module.name:function_name'"
             )
         
+        # Check for required project name
+        if not ('project' in data and 'name' in data['project']):
+            raise ValueError(
+                "Missing required 'name' field in [project] section of pyproject.toml.\n"
+                "Please add: [project]\nname = \"your-project-name\""
+            )
+        
+        project_name = data['project']['name']
+        if not project_name or not project_name.strip():
+            raise ValueError(
+                "Project name cannot be empty. Please provide a valid project name in pyproject.toml"
+            )
+        
         # Validate icon if specified
         icon_path = None
         if 'tool' in data and 'pywest' in data['tool'] and 'icon' in data['tool']['pywest']:
@@ -148,6 +161,7 @@ class ProjectBundler:
         
         return {
             'entry_point': entry_point,
+            'project_name': project_name.strip(),
             'icon_path': icon_path,
             'data': data  # Return full data for later use
         }
@@ -198,6 +212,8 @@ class ProjectBundler:
     
     def _load_project_config(self, project_path, toml_data):
         """Load project configuration from already validated toml data"""
+        
+        
         config = {
             'dependencies': [], 
             'entry_point': toml_data['tool']['pywest']['entry'],
