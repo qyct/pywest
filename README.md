@@ -4,6 +4,8 @@
 
 A tool to pack Python projects with embeddable Python for Windows distribution.
 
+**🔗 GitHub Repository:** [https://github.com/qyct/pywest](https://github.com/qyct/pywest)
+
 ## Features
 
 - 📦 Bundle Python projects with embeddable Python
@@ -175,6 +177,14 @@ PyWest supports various image formats for icons:
 - If no icon is specified, a default icon is generated
 
 Icons are automatically converted to 256x256 ICO format for Windows compatibility.
+
+## Contributing
+
+Contributions are welcome! Please visit the [GitHub repository](https://github.com/qyct/pywest) to:
+- Report issues
+- Submit pull requests
+- View the source code
+- Check the latest releases
 
 ---
 

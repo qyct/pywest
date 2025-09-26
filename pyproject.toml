@@ -4,14 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pywest"
-version = "0.0.4"
+version = "0.0.5"
 description = "A tool to pack Python projects with embeddable Python for Windows distribution."
 authors = [
     {name = "qyct"}
 ]
 readme = "README.md"
-homepage = "https://github.com/qyct/pywest"
-repository = "https://github.com/qyct/pywest"
+license = { text = "Apache-2.0" }
 requires-python = ">=3.11"
 dependencies = [
     "pillow>=8.0.0"
