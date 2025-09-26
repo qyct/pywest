@@ -1,4 +1,5 @@
 # PyWest
+*Python Windows Embedded Setup Tool*
 
 ![PyWest Logo](https://raw.githubusercontent.com/qyct/pywest/main/icon.png)
 
