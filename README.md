@@ -17,6 +17,14 @@ A tool to pack Python projects with embeddable Python for Windows distribution.
 - ⚙️ Smart dependency detection from pyproject.toml
 - 🚀 Entry point support for seamless execution
 
+### GUI Installer Features ✨
+*This package depends on [pyweste](https://github.com/qyct/pyweste) internally. This is loaded on to the setup part of the script.*
+
+* 🖥️ Simple GUI installer with progress tracking 📊
+* 🔗 Creates desktop and start menu shortcuts 🖱️
+* ➕ Adds entry to Add/Remove Programs 📋
+* 🗑️ Generates uninstaller script 🔄
+
 ## Installation
 
 ```bash
